@@ -921,6 +921,98 @@ function showMultiSelectPanel() {
   panel.classList.add('open');
 }
 
+// Filter graph by nationality (e.g., "Hong Kong")
+function filterByNationality(nationality) {
+  if (!museumData) return;
+
+  currentFilter = 'all'; // Reset area filter
+
+  // Update area button states — deactivate all except "All"
+  document.querySelectorAll('.filter-btn[data-area]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.area === 'all');
+  });
+
+  // Toggle HK button active state
+  const hkBtn = document.getElementById('hkFilter');
+  const isActive = hkBtn.classList.contains('active');
+  hkBtn.classList.toggle('active', !isActive);
+
+  // If deactivating, reset to show all
+  if (isActive) {
+    filterByArea('all');
+    return;
+  }
+
+  const currentData = getCurrentData();
+
+  // Find all tags that co-occur with objects having this nationality
+  let filteredTags;
+
+  if (fullObjects) {
+    // Use full dataset for accurate filtering
+    let source = siggMode ? fullObjects.filter(o => o.sigg) : fullObjects;
+    const hkObjects = source.filter(o => o.nationality === nationality);
+    const relevantTagIds = new Set([nationality]);
+
+    hkObjects.forEach(obj => {
+      if (obj.areas) obj.areas.forEach(a => relevantTagIds.add(a));
+      if (obj.categories) obj.categories.forEach(c => relevantTagIds.add(c));
+      if (obj.medium) relevantTagIds.add(obj.medium);
+      if (obj.decade) relevantTagIds.add(obj.decade);
+      if (obj.nationality) relevantTagIds.add(obj.nationality);
+    });
+
+    filteredTags = currentData.tags.filter(tag => relevantTagIds.has(tag.id));
+  } else {
+    // Fallback: check objectsByTag entries
+    filteredTags = currentData.tags.filter(tag => {
+      if (tag.id === nationality) return true;
+      const tagObjects = currentData.objectsByTag[tag.id] || [];
+      return tagObjects.some(obj => obj.nationality === nationality);
+    });
+  }
+
+  // Filter links
+  const filteredTagIds = new Set(filteredTags.map(t => t.id));
+  const filteredLinks = currentData.links.filter(link => {
+    return filteredTagIds.has(link.source) && filteredTagIds.has(link.target);
+  });
+
+  const countExtent = d3.extent(filteredTags, d => d.count);
+  const radiusScale = d3.scaleSqrt()
+    .domain(countExtent)
+    .range([8, 35]);
+
+  const graphData = {
+    nodes: filteredTags.map(tag => ({
+      id: tag.id,
+      count: tag.count,
+      type: tag.type,
+      color: tagColors[tag.type] || '#888'
+    })),
+    links: filteredLinks
+  };
+
+  // Destroy old graph
+  if (currentGraph) {
+    currentGraph.destroy();
+    currentGraph = null;
+  }
+
+  // Create new graph
+  const container = document.getElementById('graph');
+  const width = container.clientWidth || window.innerWidth;
+  const height = container.clientHeight || (window.innerHeight - 80);
+
+  currentGraph = window.TagGraph.createTagGraph(
+    '#graph',
+    graphData,
+    { width, height }
+  );
+
+  customizeGraph(radiusScale);
+}
+
 // Filter graph by tag type (area/category/medium/nationality/decade)
 function filterByType(type) {
   if (!museumData) return;
@@ -1351,8 +1443,15 @@ async function init() {
     // Setup filter buttons (area)
     document.querySelectorAll('.filter-btn[data-area]').forEach(btn => {
       btn.addEventListener('click', () => {
+        // Deactivate HK button when switching to area filter
+        document.getElementById('hkFilter').classList.remove('active');
         filterByArea(btn.dataset.area);
       });
+    });
+
+    // Setup Hong Kong nationality filter
+    document.getElementById('hkFilter').addEventListener('click', () => {
+      filterByNationality('Hong Kong');
     });
 
     // Setup Sigg Collection toggle
