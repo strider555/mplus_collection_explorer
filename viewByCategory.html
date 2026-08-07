@@ -360,9 +360,26 @@
       return map;
     }
 
+    function generateMplusSlug(name) {
+      return name
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[()]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+
     function artistLink(name, artistMap) {
       const url = artistMap[name];
       if (url) return `<a href="${url}" target="_blank" style="color:var(--gold);text-decoration:none;">${name}</a>`;
+      // Fallback: generate slug-based M+ URL
+      const slug = generateMplusSlug(name);
+      if (slug) {
+        const fallbackUrl = `https://www.mplus.org.hk/en/collection/makers/${slug}/`;
+        return `<a href="${fallbackUrl}" target="_blank" style="color:var(--gold);text-decoration:none;">${name}</a>`;
+      }
       return name;
     }
 

@@ -1,4 +1,15 @@
 // M+ Museum Collection Explorer
+function generateMplusSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[()]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 let museumData = null;
 let fullObjects = null; // All 13K objects from pulse.json
 let libguidesData = null; // Research Guide entries from libguides.json
@@ -895,6 +906,9 @@ function showMultiSelectPanel() {
         const matchedArtist = museumData.artists.find(a => a.name === artistName);
         if (matchedArtist && matchedArtist.mplusUrl) {
           artistHtml = `<a href="${matchedArtist.mplusUrl}" target="_blank" class="artist-card-link">${artistName}</a>`;
+        } else {
+          const slug = generateMplusSlug(artistName);
+          if (slug) artistHtml = `<a href="https://www.mplus.org.hk/en/collection/makers/${slug}/" target="_blank" class="artist-card-link">${artistName}</a>`;
         }
       }
       card.innerHTML = `<div class="object-title">${titleText}</div>${obj.titleTC ? `<div class="object-meta" style="color:var(--text-muted);font-size:12px;">${obj.titleTC}</div>` : ''}<div class="object-meta">${artistHtml}${date ? ` \u00b7 ${date}` : ''}</div>${obj.medium ? `<div class="object-meta" style="font-size:11px;color:var(--text-muted);">${obj.medium}</div>` : ''}`;
