@@ -135,7 +135,7 @@ function customizeGraph(radiusScale) {
       d3.select('#tooltipTitle').text(d.id);
       d3.select('#tooltipDetail').html(`
         <span style="display: inline-block; padding: 2px 6px; background: ${typeColor}; color: #0d1117; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; margin-right: 6px;">${d.type || 'unknown'}</span>
-        ${(d.count || 0).toLocaleString()} artworks
+        ${(d.count || 0).toLocaleString()} objects
       `);
     })
     .on('mousemove.tooltip', function(event) {
@@ -223,7 +223,7 @@ function showSidePanel(tagId) {
   document.getElementById('panelTypeLabel').textContent = tagType;
 
   // Update summary bar
-  const summaryText = `${tagId} · ${tagType} · ${objects.length.toLocaleString()} artworks`;
+  const summaryText = `${tagId} · ${tagType} · ${objects.length.toLocaleString()} objects`;
   document.getElementById('panelSummary').textContent = summaryText;
 
   // Set details button URL
@@ -373,7 +373,7 @@ function showArtistPanel(artistId) {
   document.getElementById('panelTypeLabel').textContent = 'Artist';
 
   // Update summary
-  const summaryText = `Artist · ${artist.nationality || 'Unknown'} · ${artist.objectCount.toLocaleString()} artworks`;
+  const summaryText = `Artist · ${artist.nationality || 'Unknown'} · ${artist.objectCount.toLocaleString()} objects`;
   document.getElementById('panelSummary').textContent = summaryText;
 
   // Set details button URL (prefer mplusUrl from Excel, fallback to slug)
@@ -879,7 +879,7 @@ function showMultiSelectPanel() {
   title.textContent = tags.join(' + ');
   typeLabel.textContent = 'Multi-select';
   colorIndicator.style.background = '#fff';
-  summary.textContent = `${tags.length} tags selected \u00b7 ${sharedObjs.length.toLocaleString()} shared artworks`;
+  summary.textContent = `${tags.length} tags selected \u00b7 ${sharedObjs.length.toLocaleString()} shared objects`;
 
   grid.innerHTML = '';
   if (sharedObjs.length > 0) {
@@ -907,7 +907,7 @@ function showMultiSelectPanel() {
       grid.appendChild(more);
     }
   } else {
-    grid.innerHTML = '<div class="object-card"><div class="object-title">No shared artworks</div><div class="object-meta">These categories do not overlap</div></div>';
+    grid.innerHTML = '<div class="object-card"><div class="object-title">No shared objects</div><div class="object-meta">These categories do not overlap</div></div>';
   }
 
   // Set View Full Details button
@@ -1135,7 +1135,7 @@ function setupSearch() {
                 <div class="search-item-name">${item.id}</div>
                 <div class="search-item-meta">
                   <span class="search-type-badge" style="background: ${typeColor}; color: #0d1117;">${item.type}</span>
-                  <span class="search-item-count">${item.count.toLocaleString()} artworks</span>
+                  <span class="search-item-count">${item.count.toLocaleString()} objects</span>
                 </div>
               </div>
             </div>
@@ -1148,7 +1148,7 @@ function setupSearch() {
                 <div class="search-item-name">${item.name}${item.nameTC ? ` (${item.nameTC})` : ''}</div>
                 <div class="search-item-meta">
                   <span class="search-item-detail">${item.nationality || 'Unknown'}</span>
-                  <span class="search-item-count">${item.objectCount.toLocaleString()} artworks</span>
+                  <span class="search-item-count">${item.objectCount.toLocaleString()} objects</span>
                 </div>
               </div>
             </div>

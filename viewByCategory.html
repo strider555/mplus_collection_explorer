@@ -287,7 +287,7 @@
     <div class="container">
       <div id="loading" class="loading">
         <div class="spinner"></div>
-        <div>Loading artworks...</div>
+        <div>Loading objects...</div>
       </div>
 
       <div id="content" style="display: none;">
@@ -446,7 +446,7 @@
       if (oldBtn) oldBtn.remove();
 
       if (objects.length === 0) {
-        grid.innerHTML = '<div class="error">No artworks found for this tag.</div>';
+        grid.innerHTML = '<div class="error">No objects found for this tag.</div>';
         return;
       }
 
@@ -622,7 +622,7 @@
       if (oldBtn) oldBtn.remove();
 
       if (objects.length === 0) {
-        grid.innerHTML = '<div class="error">No artworks match all selected tags.</div>';
+        grid.innerHTML = '<div class="error">No objects match all selected tags.</div>';
         return;
       }
 
