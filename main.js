@@ -1382,24 +1382,24 @@ function setupBrowseModal() {
     }
 
     browseList.innerHTML = html;
-
-    // Click handler
-    browseList.addEventListener('click', (e) => {
-      const el = e.target.closest('.browse-artist');
-      if (!el) return;
-      const id = el.dataset.id;
-      showArtistPanel(id);
-      modal.classList.remove('show');
-    });
-    browseList.addEventListener('touchend', (e) => {
-      const el = e.target.closest('.browse-artist');
-      if (!el) return;
-      e.preventDefault();
-      const id = el.dataset.id;
-      showArtistPanel(id);
-      modal.classList.remove('show');
-    });
   }
+
+  // Click handler (attached ONCE outside renderBrowseList)
+  browseList.addEventListener('click', (e) => {
+    const el = e.target.closest('.browse-artist');
+    if (!el) return;
+    const id = el.dataset.id;
+    showArtistPanel(id);
+    modal.classList.remove('show');
+  });
+  browseList.addEventListener('touchend', (e) => {
+    const el = e.target.closest('.browse-artist');
+    if (!el) return;
+    e.preventDefault();
+    const id = el.dataset.id;
+    showArtistPanel(id);
+    modal.classList.remove('show');
+  });
 }
 
 // Zoom controls
