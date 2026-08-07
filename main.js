@@ -1388,7 +1388,9 @@ function setupBrowseModal() {
   browseList.addEventListener('click', (e) => {
     const el = e.target.closest('.browse-artist');
     if (!el) return;
+    e.stopPropagation(); // Prevent document click from immediately closing the panel
     const id = el.dataset.id;
+    if (window._setPanelNavigating) window._setPanelNavigating();
     showArtistPanel(id);
     modal.classList.remove('show');
   });
@@ -1396,7 +1398,9 @@ function setupBrowseModal() {
     const el = e.target.closest('.browse-artist');
     if (!el) return;
     e.preventDefault();
+    e.stopPropagation();
     const id = el.dataset.id;
+    if (window._setPanelNavigating) window._setPanelNavigating();
     showArtistPanel(id);
     modal.classList.remove('show');
   });
