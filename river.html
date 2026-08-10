@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M+ Collection River</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e8ed;
+      --text-dim: #8b8b97;
+      --accent: #e6a817;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 14px 24px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    .pill {
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim);
+      font-size: 11px; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.25s;
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .pill.active { border-color: var(--accent); color: var(--accent); background: rgba(230,168,23,0.1); }
+
+    .pill-group { display: flex; gap: 4px; align-items: center; }
+    .pill-group .label { font-size: 10px; color: var(--text-dim); padding: 5px 4px; }
+
+    .back-link {
+      color: var(--accent); text-decoration: none; font-size: 12px;
+      padding: 5px 12px; border: 1px solid rgba(230,168,23,0.3);
+      border-radius: 6px; transition: all 0.2s;
+    }
+    .back-link:hover { background: rgba(230,168,23,0.1); }
+
+    .tooltip {
+      position: fixed; padding: 12px 16px;
+      background: rgba(19,19,26,0.95);
+      border: 1px solid var(--border);
+      border-radius: 10px; font-size: 12px;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 280px; z-index: 200;
+      backdrop-filter: blur(8px);
+    }
+    .tooltip .tt { font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 14px; }
+    .tooltip .tm { color: var(--text-dim); line-height: 1.6; }
+
+    .legend {
+      position: fixed; bottom: 20px; right: 20px;
+      background: rgba(19,19,26,0.9);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 11px; z-index: 100;
+      backdrop-filter: blur(8px);
+      max-height: 55vh; overflow-y: auto;
+    }
+    .legend-title { font-weight: 600; margin-bottom: 8px; color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background 0.2s; }
+    .legend-item:hover { background: rgba(255,255,255,0.05); }
+    .legend-item.dimmed { opacity: 0.3; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-label { color: var(--text-dim); }
+    .legend-count { margin-left: auto; color: var(--text-dim); font-size: 10px; }
+
+    .decade-labels {
+      position: fixed; bottom: 50px; left: 80px; right: 140px;
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--text-dim); z-index: 50;
+      pointer-events: none;
+    }
+
+    .y-axis-label {
+      position: fixed; left: 12px; top: 50%; transform: rotate(-90deg) translateX(-50%);
+      font-size: 10px; color: var(--text-dim); z-index: 50;
+      transform-origin: left center;
+      white-space: nowrap;
+    }
+
+    .mode-info {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: var(--text-dim);
+      background: rgba(19,19,26,0.8);
+      padding: 6px 16px; border-radius: 20px;
+      border: 1px solid var(--border); z-index: 100;
+    }
+
+    @media (max-width: 768px) {
+      .header { flex-direction: column; gap: 8px; padding: 10px 14px; }
+      .controls { justify-content: center; }
+      .legend { bottom: 10px; right: 10px; max-height: 40vh; padding: 8px 12px; }
+      .decade-labels { left: 40px; right: 100px; bottom: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>M+ Collection River</h1>
+    <div class="sub" id="subtitle">Streamgraph of 19,051 objects across decades</div>
+  </div>
+  <div class="controls">
+    <div class="pill-group">
+      <span class="label">Stream:</span>
+      <button class="pill active" data-mode="category">Category</button>
+      <button class="pill" data-mode="area">Area</button>
+      <button class="pill" data-mode="medium">Medium</button>
+    </div>
+    <a href="./index.html" class="back-link">← Graph</a>
+    <a href="./pulse.html" class="back-link">◉ Pulse</a>
+    <a href="./spiral.html" class="back-link">🌀 Spiral</a>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="legend" id="legend"></div>
+<div class="decade-labels" id="decadeLabels"></div>
+<div class="y-axis-label">← fewer objects · more objects →</div>
+<div class="mode-info">Hover a stream to highlight · Click legend to isolate</div>
+
+<script>
+// === COLORS ===
+const STREAM_PALETTE = [
+  [147, 197, 253], // light blue
+  [192, 132, 252], // purple
+  [110, 231, 183], // green
+  [251, 191, 36],  // gold
+  [244, 114, 182], // pink
+  [96, 165, 250],  // blue
+  [52, 211, 153],  // teal
+  [245, 158, 11],  // orange
+  [167, 139, 250], // lavender
+  [34, 211, 238],  // cyan
+  [255, 107, 107], // red
+  [129, 140, 248], // indigo
+  [74, 222, 128],  // lime
+  [212, 163, 115], // tan
+  [200, 180, 255], // pale purple
+  [255, 200, 100], // light gold
+];
+
+const AREA_PALETTE = {
+  'Visual Art': [192, 132, 252],
+  'Design and Architecture': [96, 165, 250],
+  'Moving Image': [244, 114, 182],
+};
+
+// === STATE ===
+let rawData = [];
+let streamMode = 'category';
+let streams = []; // { name, values: [count per decade], color }
+let decades = [];
+let hoveredStream = -1;
+let isolatedStream = -1; // click to isolate
+let loaded = false;
+
+// Perlin offsets for organic edges
+let noiseSeeds = [];
+
+// Layout
+const MARGIN = { top: 80, bottom: 70, left: 80, right: 140 };
+
+function buildStreams() {
+  // Count by decade x streamMode
+  const counts = {};
+  const allKeys = new Set();
+
+  rawData.forEach(obj => {
+    const dec = obj.decade;
+    let key = '';
+    if (streamMode === 'category') key = obj.category;
+    else if (streamMode === 'area') key = obj.area;
+    else if (streamMode === 'medium') key = obj.medium;
+    if (!dec || !key) return;
+    if (!counts[key]) counts[key] = {};
+    counts[key][dec] = (counts[key][dec] || 0) + 1;
+    allKeys.add(key);
+  });
+
+  // Sort keys by total count descending, take top N
+  const maxStreams = streamMode === 'area' ? 3 : streamMode === 'medium' ? 12 : 15;
+  const sorted = [...allKeys].map(k => ({
+    name: k,
+    total: Object.values(counts[k] || {}).reduce((a, b) => a + b, 0)
+  })).sort((a, b) => b.total - a.total).slice(0, maxStreams);
+
+  streams = sorted.map((item, i) => {
+    const values = decades.map(dec => counts[item.name]?.[dec] || 0);
+    let color;
+    if (streamMode === 'area') color = AREA_PALETTE[item.name] || STREAM_PALETTE[i % STREAM_PALETTE.length];
+    else color = STREAM_PALETTE[i % STREAM_PALETTE.length];
+    return { name: item.name, values, color, total: item.total };
+  });
+
+  // Generate noise seeds for organic look
+  noiseSeeds = streams.map(() => Math.random() * 1000);
+
+  updateLegend();
+}
+
+function updateLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = `<div class="legend-title">${streamMode}</div>` +
+    streams.map((s, i) => {
+      const dimmed = isolatedStream >= 0 && isolatedStream !== i ? 'dimmed' : '';
+      return `<div class="legend-item ${dimmed}" data-idx="${i}">
+        <div class="legend-dot" style="background:rgb(${s.color.join(',')})"></div>
+        <span class="legend-label">${s.name}</span>
+        <span class="legend-count">${s.total.toLocaleString()}</span>
+      </div>`;
+    }).join('');
+
+  // Click to isolate
+  el.querySelectorAll('.legend-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.idx);
+      isolatedStream = isolatedStream === idx ? -1 : idx;
+      updateLegend();
+    });
+  });
+}
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  noStroke();
+  textFont('Inter');
+
+  fetch('./data/pulse.json')
+    .then(r => r.json())
+    .then(d => {
+      rawData = d;
+      decades = [...new Set(d.map(o => o.decade).filter(Boolean))].sort();
+      buildStreams();
+
+      // Decade labels
+      const labelsEl = document.getElementById('decadeLabels');
+      labelsEl.innerHTML = decades.map(dec => `<span>${dec}</span>`).join('');
+
+      document.getElementById('subtitle').textContent =
+        `Streamgraph of ${d.length.toLocaleString()} objects across ${decades.length} decades`;
+      loaded = true;
+    });
+
+  // Mode buttons
+  document.querySelectorAll('.pill[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pill[data-mode]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      streamMode = btn.dataset.mode;
+      isolatedStream = -1;
+      buildStreams();
+    });
+  });
+}
+
+function draw() {
+  if (!loaded || streams.length === 0) {
+    background(10, 10, 15);
+    fill(200);
+    textAlign(CENTER, CENTER);
+    textSize(14);
+    text('Loading collection data...', width / 2, height / 2);
+    return;
+  }
+
+  background(10, 10, 15);
+
+  const plotW = width - MARGIN.left - MARGIN.right;
+  const plotH = height - MARGIN.top - MARGIN.bottom;
+  const centerY = MARGIN.top + plotH / 2;
+  const n = decades.length;
+
+  // Interpolation points (smooth between decades)
+  const resolution = 200; // points across width
+  const stepX = plotW / (resolution - 1);
+
+  // For each stream, interpolate values smoothly
+  const interpolated = streams.map((s, si) => {
+    const pts = [];
+    for (let i = 0; i < resolution; i++) {
+      const t = i / (resolution - 1) * (n - 1);
+      const idx = Math.floor(t);
+      const frac = t - idx;
+      const v0 = s.values[Math.max(0, idx - 1)] || 0;
+      const v1 = s.values[idx] || 0;
+      const v2 = s.values[Math.min(n - 1, idx + 1)] || 0;
+      const v3 = s.values[Math.min(n - 1, idx + 2)] || 0;
+
+      // Catmull-Rom interpolation for smoothness
+      const val = catmullRom(v0, v1, v2, v3, frac);
+
+      // Add subtle Perlin noise for organic feel
+      const noiseVal = (noise(noiseSeeds[si] + i * 0.03) - 0.5) * 8;
+      pts.push(Math.max(0, val + noiseVal));
+    }
+    return pts;
+  });
+
+  // Compute stacked layout (centered / wiggle baseline)
+  // Simple center-offset: half the total height at each x
+  const totals = [];
+  for (let i = 0; i < resolution; i++) {
+    let sum = 0;
+    interpolated.forEach((pts, si) => {
+      if (isolatedStream >= 0 && si !== isolatedStream) return;
+      sum += pts[i];
+    });
+    totals.push(sum);
+  }
+
+  const maxTotal = Math.max(...totals, 1);
+  const scaleFactor = (plotH * 0.85) / maxTotal;
+
+  // Draw streams from bottom to top (stacked)
+  // First compute baselines
+  const baselines = [];
+  for (let i = 0; i < resolution; i++) {
+    baselines.push(-totals[i] * scaleFactor / 2); // center the stream
+  }
+
+  // Mouse detection
+  const mx = mouseX - MARGIN.left;
+  const my = mouseY - centerY;
+  hoveredStream = -1;
+
+  // Draw each stream
+  const streamPaths = []; // store for hover detection
+  let currentBase = [...baselines];
+
+  for (let si = 0; si < streams.length; si++) {
+    if (isolatedStream >= 0 && si !== isolatedStream) continue;
+
+    const s = streams[si];
+    const pts = interpolated[si];
+    const topEdge = [];
+    const bottomEdge = [];
+
+    for (let i = 0; i < resolution; i++) {
+      const h = pts[i] * scaleFactor;
+      bottomEdge.push(currentBase[i]);
+      topEdge.push(currentBase[i] + h);
+      currentBase[i] += h;
+    }
+
+    streamPaths.push({ si, topEdge, bottomEdge });
+
+    // Check if mouse is inside this stream
+    if (mx >= 0 && mx <= plotW) {
+      const xi = Math.floor(mx / stepX);
+      if (xi >= 0 && xi < resolution) {
+        if (my >= bottomEdge[xi] && my <= topEdge[xi]) {
+          hoveredStream = si;
+        }
+      }
+    }
+  }
+
+  // Draw streams
+  push();
+  translate(MARGIN.left, centerY);
+
+  for (const path of streamPaths) {
+    const { si, topEdge, bottomEdge } = path;
+    const s = streams[si];
+    const isHovered = si === hoveredStream;
+    const isDimmed = hoveredStream >= 0 && !isHovered;
+    const alpha = isDimmed ? 60 : isHovered ? 240 : 160;
+
+    fill(s.color[0], s.color[1], s.color[2], alpha);
+
+    beginShape();
+    // Top edge left to right
+    for (let i = 0; i < resolution; i++) {
+      vertex(i * stepX, topEdge[i]);
+    }
+    // Bottom edge right to left
+    for (let i = resolution - 1; i >= 0; i--) {
+      vertex(i * stepX, bottomEdge[i]);
+    }
+    endShape(CLOSE);
+
+    // Stream label (in center of stream)
+    if (isHovered || (isolatedStream === si)) {
+      const midX = resolution / 2;
+      const midY = (topEdge[Math.floor(midX)] + bottomEdge[Math.floor(midX)]) / 2;
+      fill(255, 255, 255, 220);
+      textAlign(CENTER, CENTER);
+      textSize(12);
+      text(s.name, Math.floor(midX) * stepX, midY);
+    }
+  }
+
+  // Vertical decade grid lines
+  stroke(255, 255, 255, 20);
+  strokeWeight(1);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * plotW;
+    line(x, -plotH / 2, x, plotH / 2);
+  }
+  noStroke();
+
+  pop();
+
+  // Draw center baseline
+  push();
+  translate(MARGIN.left, centerY);
+  stroke(255, 255, 255, 30);
+  strokeWeight(0.5);
+  line(0, 0, plotW, 0);
+  pop();
+
+  // Tooltip
+  const tooltipEl = document.getElementById('tooltip');
+  if (hoveredStream >= 0) {
+    const s = streams[hoveredStream];
+    // Find which decade we're hovering
+    const decIdx = Math.round((mx / plotW) * (n - 1));
+    const dec = decades[Math.max(0, Math.min(n - 1, decIdx))];
+    const val = s.values[Math.max(0, Math.min(n - 1, decIdx))] || 0;
+
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = Math.min(mouseX + 16, width - 280) + 'px';
+    tooltipEl.style.top = (mouseY - 60) + 'px';
+    tooltipEl.innerHTML = `
+      <div class="tt">${s.name}</div>
+      <div class="tm">
+        📅 ${dec}<br>
+        📊 ${val.toLocaleString()} objects<br>
+        🏛️ Total: ${s.total.toLocaleString()} across all decades
+      </div>`;
+  } else {
+    tooltipEl.style.opacity = '0';
+  }
+}
+
+// Catmull-Rom spline interpolation
+function catmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return 0.5 * (
+    (2 * p1) +
+    (-p0 + p2) * t +
+    (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+    (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+  );
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+</script>
+</body>
+</html>
