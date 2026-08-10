@@ -530,12 +530,30 @@ constituentMap.forEach((artist, id) => {
 // Sort artists by object count
 artists.sort((a, b) => b.objectCount - a.objectCount);
 
-// Include top 200 + ALL Sigg artists (even if not in top 200)
-const top200 = new Set(artists.slice(0, 200).map(a => a.id));
-const topArtists = artists.filter(a => top200.has(a.id) || siggArtistIds.has(a.id));
+// Generate slug for M+ URL
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/\s*\(.*?\)\s*/g, '') // remove parenthetical
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
-const siggOnly = topArtists.filter(a => !top200.has(a.id)).length;
-console.log(`Artists with works: ${artists.length}, output: ${topArtists.length} (top 200 + ${siggOnly} additional Sigg artists)`);
+// Include top 200 + ALL Sigg artists + ALL Hong Kong artists (even if not in top 200)
+const top200 = new Set(artists.slice(0, 200).map(a => a.id));
+const topArtists = artists.filter(a => top200.has(a.id) || siggArtistIds.has(a.id) || a.nationality === 'Hong Kong');
+
+// Add slug and mplusUrl to all artists
+topArtists.forEach(a => {
+  a.slug = generateSlug(a.name);
+  a.mplusUrl = `https://www.mplus.org.hk/en/collection/makers/${a.slug}/`;
+});
+
+const siggOnly = topArtists.filter(a => !top200.has(a.id) && siggArtistIds.has(a.id)).length;
+const hkOnly = topArtists.filter(a => !top200.has(a.id) && !siggArtistIds.has(a.id) && a.nationality === 'Hong Kong').length;
+console.log(`Artists with works: ${artists.length}, output: ${topArtists.length} (top 200 + ${siggOnly} Sigg + ${hkOnly} HK artists)`);
 
 // Build objectsByTag for filtered tags only
 const objectsByTagFiltered = {};
