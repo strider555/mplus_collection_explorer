@@ -258,7 +258,7 @@
 <div class="header">
   <div>
     <h1>M+ Collection Pulse</h1>
-    <div class="sub">13,412 artworks as living particles</div>
+    <div class="sub">19,051 artworks as living particles</div>
   </div>
   <div class="controls">
     <div class="pill-group">
@@ -805,6 +805,9 @@ async function init() {
     camY = e.clientY - (e.clientY - camY) * (newScale / camScale);
     camScale = newScale;
   }, { passive: false });
+  
+  // Update subtitle with actual count
+  document.querySelector('.sub').textContent = `${allParticles.length.toLocaleString()} artworks as living particles`;
   
   animate();
 }
