@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M+ Collection Spiral</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8e8ed;
+      --text-dim: #8b8b97;
+      --accent: #e6a817;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+    canvas { display: block; }
+
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 14px 24px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    .pill {
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim);
+      font-size: 11px; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.25s;
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .pill.active { border-color: var(--accent); color: var(--accent); background: rgba(230,168,23,0.1); }
+
+    .pill-group { display: flex; gap: 4px; align-items: center; }
+    .pill-group .label { font-size: 10px; color: var(--text-dim); padding: 5px 4px; }
+
+    .back-link {
+      color: var(--accent); text-decoration: none; font-size: 12px;
+      padding: 5px 12px; border: 1px solid rgba(230,168,23,0.3);
+      border-radius: 6px; transition: all 0.2s;
+    }
+    .back-link:hover { background: rgba(230,168,23,0.1); }
+
+    .tooltip {
+      position: fixed; padding: 12px 16px;
+      background: rgba(19,19,26,0.95);
+      border: 1px solid var(--border);
+      border-radius: 10px; font-size: 11px;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 300px; z-index: 200;
+      backdrop-filter: blur(8px);
+    }
+    .tooltip .tt { font-weight: 600; color: var(--accent); margin-bottom: 4px; font-size: 13px; }
+    .tooltip .tc { color: var(--text-dim); font-size: 11px; margin-bottom: 4px; }
+    .tooltip .tm { color: var(--text-dim); line-height: 1.6; }
+
+    .legend {
+      position: fixed; bottom: 20px; left: 20px;
+      background: rgba(19,19,26,0.9);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 11px; z-index: 100;
+      backdrop-filter: blur(8px);
+      max-height: 60vh; overflow-y: auto;
+    }
+    .legend-title { font-weight: 600; margin-bottom: 8px; color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-label { color: var(--text-dim); }
+
+    .stats {
+      position: fixed; bottom: 20px; right: 20px;
+      background: rgba(19,19,26,0.9);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 11px; z-index: 100;
+      backdrop-filter: blur(8px);
+      text-align: right;
+    }
+    .stats .num { font-size: 28px; font-weight: 700; color: var(--accent); }
+    .stats .unit { color: var(--text-dim); margin-top: 2px; }
+
+    .mode-info {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: var(--text-dim);
+      background: rgba(19,19,26,0.8);
+      padding: 6px 16px; border-radius: 20px;
+      border: 1px solid var(--border); z-index: 100;
+    }
+
+    @media (max-width: 768px) {
+      .header { flex-direction: column; gap: 8px; padding: 10px 14px; }
+      .controls { justify-content: center; }
+      .legend { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>M+ Collection Spiral</h1>
+    <div class="sub" id="subtitle">19,051 objects in phyllotaxis arrangement</div>
+  </div>
+  <div class="controls">
+    <div class="pill-group">
+      <span class="label">Color by:</span>
+      <button class="pill active" data-color="area">Area</button>
+      <button class="pill" data-color="category">Category</button>
+      <button class="pill" data-color="decade">Decade</button>
+      <button class="pill" data-color="nationality">Nationality</button>
+    </div>
+    <a href="./index.html" class="back-link">← Graph</a>
+    <a href="./pulse.html" class="back-link">◉ Pulse</a>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div class="legend" id="legend"></div>
+<div class="stats" id="stats"></div>
+<div class="mode-info">Scroll to zoom · Drag to pan · Hover for details</div>
+
+<script>
+// === CONFIG ===
+const PHI = 137.508; // golden angle in degrees
+const BASE_SPACING = 3.2;
+
+const AREA_COLORS = {
+  'Visual Art': [192, 132, 252],
+  'Design and Architecture': [96, 165, 250],
+  'Moving Image': [244, 114, 182],
+};
+
+const CATEGORY_COLORS = {
+  'Photography': [147, 197, 253],
+  'Painting': [192, 132, 252],
+  'Ink Art': [110, 231, 183],
+  'Print': [251, 191, 36],
+  'Poster': [245, 158, 11],
+  'Video': [244, 114, 182],
+  'Drawing': [167, 139, 250],
+  'Installation': [52, 211, 153],
+  'Digital': [34, 211, 238],
+  'Architectural Drawing': [96, 165, 250],
+  'Sculpture': [16, 185, 129],
+  'Design Object': [129, 140, 248],
+  'Book/Periodical': [212, 163, 115],
+  'Architectural Model': [74, 222, 128],
+  'Product Design': [200, 180, 255],
+  'Archival Documentation': [180, 180, 200],
+};
+
+const DECADE_COLORS = {
+  '1900s': [100, 100, 140], '1910s': [110, 110, 150], '1920s': [120, 120, 160],
+  '1930s': [130, 140, 170], '1940s': [140, 160, 180], '1950s': [160, 190, 200],
+  '1960s': [96, 165, 250], '1970s': [110, 231, 183], '1980s': [251, 191, 36],
+  '1990s': [244, 114, 182], '2000s': [192, 132, 252], '2010s': [52, 211, 153],
+  '2020s': [34, 211, 238],
+};
+
+const NATIONALITY_COLORS = {
+  'Chinese': [255, 107, 107], 'Japanese': [244, 114, 182], 'American': [96, 165, 250],
+  'British': [110, 231, 183], 'Korean': [192, 132, 252], 'French': [251, 191, 36],
+  'German': [52, 211, 153], 'Austrian': [245, 158, 11], 'Australian': [34, 211, 238],
+  'Swiss': [167, 139, 250], 'Dutch': [129, 140, 248], 'Italian': [74, 222, 128],
+  'Taiwanese': [255, 150, 100], 'Indian': [200, 130, 255], 'Canadian': [100, 200, 255],
+};
+
+let data = [];
+let spiralPoints = [];
+let colorMode = 'area';
+let camX = 0, camY = 0, camScale = 1;
+let dragStartX, dragStartY, isDragging = false;
+let hoveredIdx = -1;
+let targetScale = 1, targetX = 0, targetY = 0;
+let loaded = false;
+
+// Precompute spiral positions
+function computeSpiral() {
+  spiralPoints = [];
+  for (let i = 0; i < data.length; i++) {
+    const angle = i * PHI * (Math.PI / 180);
+    const r = BASE_SPACING * Math.sqrt(i);
+    spiralPoints.push({
+      x: r * Math.cos(angle),
+      y: r * Math.sin(angle),
+      data: data[i]
+    });
+  }
+}
+
+function getColor(d) {
+  let col;
+  if (colorMode === 'area') col = AREA_COLORS[d.area];
+  else if (colorMode === 'category') col = CATEGORY_COLORS[d.category];
+  else if (colorMode === 'decade') col = DECADE_COLORS[d.decade];
+  else if (colorMode === 'nationality') col = NATIONALITY_COLORS[d.nationality];
+  return col || [100, 100, 100];
+}
+
+function getLegendItems() {
+  let map;
+  if (colorMode === 'area') map = AREA_COLORS;
+  else if (colorMode === 'category') map = CATEGORY_COLORS;
+  else if (colorMode === 'decade') map = DECADE_COLORS;
+  else map = NATIONALITY_COLORS;
+
+  // Sort by count
+  const counts = {};
+  data.forEach(d => {
+    const key = colorMode === 'area' ? d.area : colorMode === 'category' ? d.category : colorMode === 'decade' ? d.decade : d.nationality;
+    if (key) counts[key] = (counts[key] || 0) + 1;
+  });
+
+  return Object.entries(map)
+    .filter(([k]) => counts[k])
+    .sort((a, b) => (counts[b[0]] || 0) - (counts[a[0]] || 0))
+    .map(([k, c]) => ({ label: k, color: c, count: counts[k] || 0 }));
+}
+
+function updateLegend() {
+  const el = document.getElementById('legend');
+  const items = getLegendItems();
+  el.innerHTML = `<div class="legend-title">Color: ${colorMode}</div>` +
+    items.slice(0, 16).map(item =>
+      `<div class="legend-item"><div class="legend-dot" style="background:rgb(${item.color.join(',')})"></div><span class="legend-label">${item.label} (${item.count.toLocaleString()})</span></div>`
+    ).join('');
+}
+
+function setup() {
+  const canvas = createCanvas(windowWidth, windowHeight);
+  canvas.parent(document.body);
+  angleMode(DEGREES);
+  textFont('Inter');
+
+  // Load data
+  fetch('./data/pulse.json')
+    .then(r => r.json())
+    .then(d => {
+      data = d;
+      computeSpiral();
+      updateLegend();
+      document.getElementById('subtitle').textContent = `${data.length.toLocaleString()} objects in phyllotaxis arrangement`;
+      document.getElementById('stats').innerHTML = `<div class="num">${data.length.toLocaleString()}</div><div class="unit">objects</div>`;
+      loaded = true;
+    });
+
+  // Color mode buttons
+  document.querySelectorAll('.pill[data-color]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pill[data-color]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      colorMode = btn.dataset.color;
+      updateLegend();
+    });
+  });
+}
+
+function draw() {
+  if (!loaded) {
+    background(10, 10, 15);
+    fill(200);
+    textAlign(CENTER, CENTER);
+    textSize(14);
+    text('Loading 19,000+ objects...', width / 2, height / 2);
+    return;
+  }
+
+  background(10, 10, 15);
+
+  // Smooth camera
+  camScale += (targetScale - camScale) * 0.1;
+  camX += (targetX - camX) * 0.1;
+  camY += (targetY - camY) * 0.1;
+
+  push();
+  translate(width / 2 + camX, height / 2 + camY);
+  scale(camScale);
+
+  // Find hovered
+  const wmx = (mouseX - width / 2 - camX) / camScale;
+  const wmy = (mouseY - height / 2 - camY) / camScale;
+  hoveredIdx = -1;
+  let minDist = 8 / camScale;
+
+  // Only check nearby points for performance
+  for (let i = 0; i < spiralPoints.length; i++) {
+    const p = spiralPoints[i];
+    const dx = p.x - wmx;
+    const dy = p.y - wmy;
+    const d = dx * dx + dy * dy;
+    if (d < minDist * minDist) {
+      minDist = Math.sqrt(d);
+      hoveredIdx = i;
+    }
+  }
+
+  // Draw points
+  noStroke();
+  for (let i = 0; i < spiralPoints.length; i++) {
+    const p = spiralPoints[i];
+    const col = getColor(p.data);
+    const isHovered = i === hoveredIdx;
+
+    if (isHovered) {
+      fill(255, 255, 255, 200);
+      ellipse(p.x, p.y, 8 / camScale, 8 / camScale);
+      fill(col[0], col[1], col[2], 255);
+      ellipse(p.x, p.y, 6 / camScale, 6 / camScale);
+    } else {
+      fill(col[0], col[1], col[2], 180);
+      const sz = Math.max(1.5, 2.5 / Math.sqrt(camScale));
+      ellipse(p.x, p.y, sz, sz);
+    }
+  }
+
+  pop();
+
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  if (hoveredIdx >= 0) {
+    const d = spiralPoints[hoveredIdx].data;
+    tooltip.style.opacity = '1';
+    tooltip.style.left = (mouseX + 16) + 'px';
+    tooltip.style.top = (mouseY - 10) + 'px';
+    // Keep tooltip in viewport
+    const rect = tooltip.getBoundingClientRect();
+    if (rect.right > windowWidth) tooltip.style.left = (mouseX - rect.width - 10) + 'px';
+    if (rect.bottom > windowHeight) tooltip.style.top = (mouseY - rect.height - 10) + 'px';
+
+    tooltip.innerHTML = `
+      <div class="tt">${d.title || 'Untitled'}</div>
+      ${d.titleTC ? `<div class="tc">${d.titleTC}</div>` : ''}
+      <div class="tm">
+        ${d.artistName ? `🎨 ${d.artistName}<br>` : ''}
+        ${d.year ? `📅 ${d.year}` : ''}${d.decade ? ` (${d.decade})` : ''}<br>
+        ◉ ${d.area || '—'} · ${d.category || '—'}<br>
+        ${d.nationality ? `🌍 ${d.nationality}<br>` : ''}
+        ${d.medium ? `🖼️ ${d.medium.slice(0, 60)}${d.medium.length > 60 ? '…' : ''}` : ''}
+      </div>`;
+  } else {
+    tooltip.style.opacity = '0';
+  }
+}
+
+// === INTERACTION ===
+function mouseWheel(event) {
+  const factor = event.delta > 0 ? 0.9 : 1.1;
+  const newScale = constrain(targetScale * factor, 0.1, 12);
+
+  // Zoom toward mouse
+  const mx = mouseX - width / 2;
+  const my = mouseY - height / 2;
+  targetX = mx - (mx - targetX) * (newScale / targetScale);
+  targetY = my - (my - targetY) * (newScale / targetScale);
+  targetScale = newScale;
+
+  return false;
+}
+
+function mousePressed() {
+  if (mouseY < 70) return; // Don't drag on header
+  isDragging = true;
+  dragStartX = mouseX - targetX;
+  dragStartY = mouseY - targetY;
+}
+
+function mouseDragged() {
+  if (!isDragging) return;
+  targetX = mouseX - dragStartX;
+  targetY = mouseY - dragStartY;
+}
+
+function mouseReleased() {
+  isDragging = false;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+// Touch support
+function touchStarted() {
+  if (touches.length === 1 && mouseY > 70) {
+    isDragging = true;
+    dragStartX = touches[0].x - targetX;
+    dragStartY = touches[0].y - targetY;
+  }
+  return true;
+}
+
+function touchMoved() {
+  if (isDragging && touches.length === 1) {
+    targetX = touches[0].x - dragStartX;
+    targetY = touches[0].y - dragStartY;
+  }
+  return false;
+}
+
+function touchEnded() {
+  isDragging = false;
+  return true;
+}
+</script>
+</body>
+</html>
