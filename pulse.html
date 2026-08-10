@@ -99,9 +99,87 @@
       border: 1px solid var(--border); z-index: 100;
     }
     
+    /* Detail Panel */
+    .detail-panel {
+      position: fixed;
+      top: 0; right: -420px;
+      width: 420px; height: 100%;
+      background: rgba(13,13,20,0.97);
+      border-left: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      z-index: 300;
+      display: flex; flex-direction: column;
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+    }
+    .detail-panel.open { right: 0; }
+    .detail-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .detail-close {
+      background: none; border: none; color: var(--text-dim);
+      font-size: 22px; cursor: pointer; padding: 0;
+      width: 32px; height: 32px; display: flex;
+      align-items: center; justify-content: center;
+      border-radius: 6px; transition: all 0.2s;
+    }
+    .detail-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+    .detail-title { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .detail-title-tc { font-size: 14px; color: var(--text-dim); margin-bottom: 8px; }
+    .detail-content {
+      flex: 1; overflow-y: auto; padding: 20px 24px;
+    }
+    .detail-field {
+      margin-bottom: 16px;
+    }
+    .detail-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--accent); margin-bottom: 4px;
+    }
+    .detail-value {
+      font-size: 13px; color: var(--text); line-height: 1.5;
+    }
+    .detail-tags {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+    }
+    .detail-tag {
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 11px; border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .detail-tag.area { border-color: rgba(192,132,252,0.4); color: rgb(192,132,252); }
+    .detail-tag.category { border-color: rgba(96,165,250,0.4); color: rgb(96,165,250); }
+    .detail-tag.decade { border-color: rgba(110,231,183,0.4); color: rgb(110,231,183); }
+    .detail-color-bar {
+      width: 4px; height: 40px; border-radius: 2px; flex-shrink: 0;
+      margin-right: 12px;
+    }
+    .detail-header-left {
+      display: flex; align-items: flex-start; flex: 1; min-width: 0;
+    }
+    .detail-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .detail-nav {
+      display: flex; gap: 8px;
+    }
+    .detail-nav-btn {
+      flex: 1; padding: 8px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); font-size: 11px; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+    .detail-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
     @media (max-width: 768px) {
       .header { flex-direction: column; gap: 8px; padding: 10px 14px; }
       .controls { justify-content: center; }
+      .detail-panel { width: 100%; right: -100%; }
     }
     .zoom-controls {
       position: fixed;
@@ -284,7 +362,27 @@
 
 <canvas id="canvas"></canvas>
 <div class="tooltip" id="tooltip"></div>
-<div class="mode-info" id="modeInfo">Click a grouping to see particles form clusters</div>
+<div class="mode-info" id="modeInfo">Click a grouping to see particles form clusters · Click a particle for details</div>
+
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div class="detail-header-left">
+      <div class="detail-color-bar" id="detailColorBar"></div>
+      <div>
+        <div class="detail-title" id="detailTitle">—</div>
+        <div class="detail-title-tc" id="detailTitleTC"></div>
+      </div>
+    </div>
+    <button class="detail-close" id="detailClose">×</button>
+  </div>
+  <div class="detail-content" id="detailContent"></div>
+  <div class="detail-footer">
+    <div class="detail-nav">
+      <button class="detail-nav-btn" id="detailPrev">← Previous</button>
+      <button class="detail-nav-btn" id="detailNext">Next →</button>
+    </div>
+  </div>
+</div>
 <div class="zoom-controls" id="zoomControls">
   <button class="zoom-btn" id="pulseZoomIn">+</button>
   <button class="zoom-btn" id="pulseZoomOut">−</button>
@@ -616,6 +714,7 @@ function animate() {
         ${d.year ? `📅 ${d.year}<br>` : ''}
         ◉ ${d.category} · ${d.area}
         ${d.medium ? `<br>🖌️ ${d.medium}` : ''}
+        <br><span style="color:var(--accent);font-size:10px;">Click for details</span>
       </div>`;
     const tx = Math.min(mouseX + 15, W - 290);
     const ty = Math.min(mouseY - 10, H - 150);
@@ -805,6 +904,141 @@ async function init() {
     camY = e.clientY - (e.clientY - camY) * (newScale / camScale);
     camScale = newScale;
   }, { passive: false });
+  
+  // === CLICK TO SHOW DETAIL PANEL ===
+  let selectedParticle = null;
+  let selectedIndex = -1;
+  const detailPanel = document.getElementById('detailPanel');
+  const detailTitle = document.getElementById('detailTitle');
+  const detailTitleTC = document.getElementById('detailTitleTC');
+  const detailContent = document.getElementById('detailContent');
+  const detailColorBar = document.getElementById('detailColorBar');
+  
+  function showDetail(particle) {
+    if (!particle) return;
+    selectedParticle = particle;
+    selectedIndex = particles.indexOf(particle);
+    const d = particle.data;
+    const col = getColor(particle);
+    
+    detailTitle.textContent = d.title || 'Untitled';
+    detailTitleTC.textContent = d.titleTC || '';
+    detailColorBar.style.background = `rgb(${col[0]},${col[1]},${col[2]})`;
+    
+    let html = '';
+    
+    if (d.artistName) {
+      html += `<div class="detail-field">
+        <div class="detail-label">🎨 Artist</div>
+        <div class="detail-value">${d.artistName}</div>
+      </div>`;
+    }
+    
+    if (d.year || d.decade) {
+      html += `<div class="detail-field">
+        <div class="detail-label">📅 Date</div>
+        <div class="detail-value">${d.year || '—'}${d.decade ? ` (${d.decade})` : ''}</div>
+      </div>`;
+    }
+    
+    if (d.medium) {
+      html += `<div class="detail-field">
+        <div class="detail-label">🖌️ Medium</div>
+        <div class="detail-value">${d.medium}</div>
+      </div>`;
+    }
+    
+    if (d.nationality) {
+      html += `<div class="detail-field">
+        <div class="detail-label">🌍 Nationality</div>
+        <div class="detail-value">${d.nationality}</div>
+      </div>`;
+    }
+    
+    // Tags
+    html += `<div class="detail-field">
+      <div class="detail-label">Classification</div>
+      <div class="detail-tags">`;
+    if (d.area) html += `<span class="detail-tag area">${d.area}</span>`;
+    if (d.category) html += `<span class="detail-tag category">${d.category}</span>`;
+    if (d.decade) html += `<span class="detail-tag decade">${d.decade}</span>`;
+    html += `</div></div>`;
+    
+    // Additional categories/areas if multiple
+    if (d.categories && d.categories.length > 1) {
+      html += `<div class="detail-field">
+        <div class="detail-label">All Categories</div>
+        <div class="detail-tags">${d.categories.map(c => `<span class="detail-tag category">${c}</span>`).join('')}</div>
+      </div>`;
+    }
+    if (d.areas && d.areas.length > 1) {
+      html += `<div class="detail-field">
+        <div class="detail-label">All Areas</div>
+        <div class="detail-tags">${d.areas.map(a => `<span class="detail-tag area">${a}</span>`).join('')}</div>
+      </div>`;
+    }
+    
+    if (d.sigg) {
+      html += `<div class="detail-field">
+        <div class="detail-label">⭐ Collection</div>
+        <div class="detail-value">Sigg Collection</div>
+      </div>`;
+    }
+    
+    // Object ID
+    html += `<div class="detail-field">
+      <div class="detail-label">Object ID</div>
+      <div class="detail-value" style="font-family:monospace; font-size:11px; color:var(--text-dim)">#${d.id}</div>
+    </div>`;
+    
+    detailContent.innerHTML = html;
+    detailPanel.classList.add('open');
+  }
+  
+  function closeDetail() {
+    detailPanel.classList.remove('open');
+    selectedParticle = null;
+    selectedIndex = -1;
+  }
+  
+  canvas.addEventListener('click', e => {
+    if (hoveredParticle) {
+      showDetail(hoveredParticle);
+    }
+  });
+  
+  document.getElementById('detailClose').addEventListener('click', closeDetail);
+  
+  // Keyboard: Escape to close, arrows to navigate
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDetail();
+    if (!detailPanel.classList.contains('open')) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex + 1) % particles.length;
+      showDetail(particles[selectedIndex]);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + particles.length) % particles.length;
+      showDetail(particles[selectedIndex]);
+    }
+  });
+  
+  // Nav buttons
+  document.getElementById('detailPrev').addEventListener('click', () => {
+    if (selectedIndex < 0) return;
+    selectedIndex = (selectedIndex - 1 + particles.length) % particles.length;
+    showDetail(particles[selectedIndex]);
+  });
+  document.getElementById('detailNext').addEventListener('click', () => {
+    if (selectedIndex < 0) return;
+    selectedIndex = (selectedIndex + 1) % particles.length;
+    showDetail(particles[selectedIndex]);
+  });
+  
+  // Click outside panel to close (on canvas)
+  detailPanel.addEventListener('click', e => e.stopPropagation());
   
   // Update subtitle with actual count
   document.querySelector('.sub').textContent = `${allParticles.length.toLocaleString()} artworks as living particles`;
