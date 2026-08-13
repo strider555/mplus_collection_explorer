@@ -530,12 +530,22 @@ constituentMap.forEach((artist, id) => {
 // Sort artists by object count
 artists.sort((a, b) => b.objectCount - a.objectCount);
 
+// Manual slug overrides for names that don't follow standard pattern
+const SLUG_OVERRIDES = {
+  'Palmer & Turner (P&T Group)': 'palmer-and-turner-p-and-t-group',
+  'Kai Kee Fun Den Co. Ltd.': null, // No M+ page exists
+};
+
 // Generate slug for M+ URL
+// M+ pattern: & -> and, keep parenthetical content, remove punctuation
 function generateSlug(name) {
+  if (SLUG_OVERRIDES.hasOwnProperty(name)) return SLUG_OVERRIDES[name];
   return name
     .toLowerCase()
-    .replace(/\s*\(.*?\)\s*/g, '') // remove parenthetical
-    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/&/g, 'and')          // & -> and
+    .replace(/a\.k\.a\./g, 'aka') // a.k.a. -> aka
+    .replace(/[^a-z0-9\s()-]/g, '') // remove punctuation but keep parens
+    .replace(/[()]/g, '')           // then remove parens themselves
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
