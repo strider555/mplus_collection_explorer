@@ -521,7 +521,7 @@
           const row = document.createElement('div');
           row.className = 'object-meta-row';
           row.innerHTML = `
-            <span class="object-meta-label">Nationality</span>
+            <span class="object-meta-label">Country</span>
             <span>${obj.nationality}</span>
           `;
           meta.appendChild(row);
@@ -665,7 +665,7 @@
           }
           const meta = document.createElement('div');
           meta.className = 'object-meta';
-          [['Date', obj.date], ['Artist', obj.artistName], ['Nationality', obj.nationality], ['Medium', obj.medium]].forEach(([label, val]) => {
+          [['Date', obj.date], ['Artist', obj.artistName], ['Country', obj.nationality], ['Medium', obj.medium]].forEach(([label, val]) => {
             if (val) {
               const row = document.createElement('div');
               row.className = 'object-meta-row';

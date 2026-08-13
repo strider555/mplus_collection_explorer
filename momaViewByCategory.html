@@ -114,7 +114,7 @@
 
         // Find tag
         const tag = graphData.tags.find(t => t.name === category || t.id === category);
-        const fieldMap = { Department: 'department', Classification: 'classification', Nationality: 'nationality', Decade: 'decade' };
+        const fieldMap = { Department: 'department', Classification: 'classification', Country: 'nationality', Decade: 'decade' };
         const field = type ? fieldMap[type] : (tag ? fieldMap[tag.type] : null);
 
         // Filter objects
@@ -168,7 +168,7 @@
                 `<div class="object-meta">` +
                 (obj.date ? `<div class="object-meta-row"><span class="object-meta-label">Date</span><span>${obj.date}</span></div>` : '') +
                 (obj.artistName ? `<div class="object-meta-row"><span class="object-meta-label">Artist</span><span>${artistHtml}</span></div>` : '') +
-                (obj.nationality ? `<div class="object-meta-row"><span class="object-meta-label">Nationality</span><span>${obj.nationality}</span></div>` : '') +
+                (obj.nationality ? `<div class="object-meta-row"><span class="object-meta-label">Country</span><span>${obj.nationality}</span></div>` : '') +
                 (obj.medium ? `<div class="object-meta-row"><span class="object-meta-label">Medium</span><span>${obj.medium}</span></div>` : '') +
                 `</div>` +
                 (obj.id ? `<a href="https://www.moma.org/collection/works/${obj.id}" target="_blank" class="moma-link">View on MoMA →</a>` : '');

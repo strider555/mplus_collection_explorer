@@ -526,7 +526,7 @@ function showArtworkPanel(artworkId) {
   }
 
   if (artwork.nationality) {
-    detailsList.push(`<div class="detail-row"><span class="detail-label">Nationality:</span><span class="detail-value">${artwork.nationality}</span></div>`);
+    detailsList.push(`<div class="detail-row"><span class="detail-label">Country:</span><span class="detail-value">${artwork.nationality}</span></div>`);
   }
 
   if (artwork.date) {

@@ -102,10 +102,10 @@
       </div>
       <div class="legend-sub"></div>
     </div>
-    <div class="legend-group" data-type="Nationality">
+    <div class="legend-group" data-type="Country">
       <div class="legend-item">
         <span class="legend-dot" style="background:#45b7d1"></span>
-        <span>Nationality</span>
+        <span>Country</span>
         <span class="legend-arrow">›</span>
       </div>
       <div class="legend-sub"></div>
@@ -159,7 +159,7 @@ let selectedTags = new Set();
 const tagColors = {
   Department: '#E6A817',
   Classification: '#4ecdc4',
-  Nationality: '#45b7d1',
+  Country: '#45b7d1',
   Decade: '#96ceb4'
 };
 
@@ -336,7 +336,7 @@ async function showSidePanel() {
     } catch(e) { document.getElementById('panelSummary').textContent = 'Failed to load'; return; }
   }
 
-  const fieldMap = {Department:'department', Classification:'classification', Nationality:'nationality', Decade:'decade'};
+  const fieldMap = {Department:'department', Classification:'classification', Country:'nationality', Decade:'decade'};
   // AND filter across all selected tags
   const objs = pulseData.filter(o => tags.every(tag => {
     const field = fieldMap[tag.type];
