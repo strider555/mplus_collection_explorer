@@ -533,7 +533,7 @@ artists.sort((a, b) => b.objectCount - a.objectCount);
 // Manual slug overrides for names that don't follow standard pattern
 const SLUG_OVERRIDES = {
   'Palmer & Turner (P&T Group)': 'palmer-and-turner-p-and-t-group',
-  'Kai Kee Fun Den Co. Ltd.': null, // No M+ page exists
+  'Kai Kee Fun Den Co. Ltd.': 'kai-kee-fun-den-co-ltd-1142',
 };
 
 // Generate slug for M+ URL
