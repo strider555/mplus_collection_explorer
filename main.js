@@ -68,7 +68,7 @@ async function loadData() {
     } catch(e) { console.warn('pulse.json not available'); }
     // Load Research Guide data
     try {
-      const lgResp = await fetch('./data/libguides.json');
+      const lgResp = await fetch('./data/libguides.json?v=20261006');
       if (lgResp.ok) libguidesData = await lgResp.json();
       console.log('Research Guides loaded:', libguidesData ? libguidesData.length : 0);
     } catch(e) { console.warn('libguides.json not available'); }
