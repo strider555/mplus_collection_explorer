@@ -208,6 +208,16 @@ function openGuideEntry(guide) {
   });
   if (artist) {
     showArtistPanel(artist.id);
+    return;
+  }
+  // 3) Artist has works but is missing from the artist index — synthesized panel
+  const key = guide.name.toLowerCase().trim();
+  const hasWorks = (fullObjects || []).some(o => {
+    const n = (o.artistName || '').toLowerCase().trim();
+    return n === key || n === key + 's' || key === n + 's';
+  });
+  if (hasWorks) {
+    showArtistPanel(guide.name);
   }
 }
 
@@ -383,11 +393,29 @@ function findObjectsByArtist(artistName) {
 // Show artist panel
 function showArtistPanel(artistId) {
   const panel = document.getElementById('sidePanel');
-  const artist = museumData.artists.find(a => a.id === artistId);
+  let artist = museumData.artists.find(a => a.id === artistId);
 
   if (!artist) {
-    console.warn('Artist not found:', artistId);
-    return;
+    // Fallback: artist has works but is missing from the artist index — synthesize from objects
+    const key = String(artistId).toLowerCase().trim();
+    const objs = (fullObjects || []).filter(o => {
+      const n = (o.artistName || '').toLowerCase().trim();
+      return n === key || n === key + 's' || key === n + 's';
+    });
+    if (!objs.length) {
+      console.warn('Artist not found:', artistId);
+      return;
+    }
+    artist = {
+      id: artistId,
+      name: objs[0].artistName.trim(),
+      nameTC: '',
+      nationality: (objs.find(o => o.nationality) || {}).nationality || 'Unknown',
+      objectCount: objs.length,
+      slug: null,
+      mplusUrl: null,
+      bio: ''
+    };
   }
 
   const objects = findObjectsByArtist(artist.name);
@@ -730,16 +758,18 @@ function setupLegendSubmenus() {
   const rgContainer = document.getElementById('sub-research-guide');
   if (rgContainer && libguidesData) {
     const currentData = getCurrentData();
-    // Guide names matched by any tag/artist (same matching as the panel button)
+    // Guide names matched by any tag/artist (same matching as the panel button).
+    // Object artistNames are included too: the artist index misses some artists
+    // who do have works in the collection (e.g. Antony Gormley).
     const matchedGuideNames = new Set();
-    currentData.tags.forEach(t => {
-      const g = findResearchGuide(t.id);
+    const considerName = (n) => {
+      if (!n) return;
+      const g = findResearchGuide(n);
       if (g) matchedGuideNames.add(g.name);
-    });
-    (currentData.artists || []).forEach(a => {
-      const g = findResearchGuide(a.name);
-      if (g) matchedGuideNames.add(g.name);
-    });
+    };
+    currentData.tags.forEach(t => considerName(t.id));
+    (currentData.artists || []).forEach(a => considerName(a.name));
+    (fullObjects || []).forEach(o => considerName(o.artistName));
     rgContainer.innerHTML = '';
     libguidesData
       .filter(g => matchedGuideNames.has(g.name))
@@ -747,7 +777,7 @@ function setupLegendSubmenus() {
       .forEach(guide => {
         const item = document.createElement('div');
         item.className = 'legend-sub-item';
-        item.innerHTML = `<span>${guide.name}</span>`;
+        item.innerHTML = `<span>${guide.name}</span><span class="sub-count">${guide.type}</span>`;
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           openGuideEntry(guide);
