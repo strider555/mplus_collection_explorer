@@ -565,9 +565,9 @@ function generateSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
-// Include top 200 + ALL Sigg artists + ALL Hong Kong artists (even if not in top 200)
-const top200 = new Set(artists.slice(0, 200).map(a => a.id));
-const topArtists = artists.filter(a => top200.has(a.id) || siggArtistIds.has(a.id) || a.nationality === 'Hong Kong');
+// Include ALL artists with works in the collection (no top-N cut), so artists
+// with small holdings (e.g. Antony Gormley, I. M. Pei) stay in the index
+const topArtists = artists;
 
 // Add slug and mplusUrl to all artists
 topArtists.forEach(a => {
@@ -575,9 +575,7 @@ topArtists.forEach(a => {
   a.mplusUrl = `https://www.mplus.org.hk/en/collection/makers/${a.slug}/`;
 });
 
-const siggOnly = topArtists.filter(a => !top200.has(a.id) && siggArtistIds.has(a.id)).length;
-const hkOnly = topArtists.filter(a => !top200.has(a.id) && !siggArtistIds.has(a.id) && a.nationality === 'Hong Kong').length;
-console.log(`Artists with works: ${artists.length}, output: ${topArtists.length} (top 200 + ${siggOnly} Sigg + ${hkOnly} HK artists)`);
+console.log(`Artists with works: ${artists.length}, output: ${topArtists.length} (all artists with works)`);
 
 // Build objectsByTag for filtered tags only
 const objectsByTagFiltered = {};
