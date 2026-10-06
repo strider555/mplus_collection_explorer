@@ -153,6 +153,19 @@ objectsData.forEach((obj, idx) => {
 
   // Parse constituents (artists) - constituents field contains array of IDs
   const constituentIds = parseJSONArray(obj.constituents);
+  const constituentRoles = parseJSONArray(obj.constituentsRole);
+  const constituentRolesTC = parseJSONArray(obj.constituentsRoleTC);
+  // Full credits: every constituent with role (used by the artwork panel)
+  const credits = constituentIds.map((cid, idx) => {
+    const c = constituentMap.get(String(cid));
+    if (!c || !c.name) return null;
+    return {
+      name: c.name,
+      nameTC: c.nameTC || '',
+      role: constituentRoles[idx] || '',
+      roleTC: constituentRolesTC[idx] || ''
+    };
+  }).filter(Boolean);
   let artistId = '';
   let artistName = '';
   let artistNameTC = '';
@@ -180,6 +193,7 @@ objectsData.forEach((obj, idx) => {
     id,
     title,
     titleTC,
+    credits,
     areas: areas.slice(0, 3), // limit arrays
     categories: categories.slice(0, 3),
     medium: medium.substring(0, 60), // limit string length
