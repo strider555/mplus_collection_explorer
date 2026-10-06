@@ -91,6 +91,83 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Slug generator (mirrors tools/processMuseumData.js) for client-side artist entries
+const SLUG_OVERRIDES = {
+  'Palmer & Turner (P&T Group)': 'palmer-and-turner-p-and-t-group',
+  'Kai Kee Fun Den Co. Ltd.': 'kai-kee-fun-den-co-ltd-1142',
+};
+function generateSlug(name) {
+  if (Object.prototype.hasOwnProperty.call(SLUG_OVERRIDES, name)) return SLUG_OVERRIDES[name];
+  return name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/a\.k\.a\./g, 'aka')
+    .replace(/[^a-z0-9\s()-]/g, '')
+    .replace(/[()]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// Top up the artist index with every artist who has works in the collection.
+// The shipped data used to include only top 200 + Sigg + Hong Kong artists;
+// the full list is derived here from the already-loaded fullObjects, so
+// small-holding artists (e.g. Antony Gormley, I. M. Pei) get proper index
+// entries immediately without waiting for a data rebuild. Idempotent: names
+// already in the index are skipped, so a future rebuilt dataset is unaffected.
+function topUpArtistIndex() {
+  if (!museumData || !fullObjects || !fullObjects.length || !museumData.artists) return;
+  const have = new Set(museumData.artists.map(a => a.name));
+  // nameTC lookup: fullObjects (pulse.json) lacks artistNameTC, so gather it
+  // from objectsByTag and the credits sidecar
+  const nameTC = {};
+  for (const objects of Object.values(museumData.objectsByTag || {})) {
+    for (const o of objects) {
+      if (o.artistName && o.artistNameTC && !nameTC[o.artistName]) nameTC[o.artistName] = o.artistNameTC;
+    }
+  }
+  for (const creds of Object.values(creditsData)) {
+    for (const [nm, tc] of (creds || [])) {
+      if (nm && tc && !nameTC[nm]) nameTC[nm] = tc;
+    }
+  }
+  const counts = new Map();
+  const nat = {};
+  for (const o of fullObjects) {
+    const n = (o.artistName || '').trim();
+    if (!n) continue;
+    counts.set(n, (counts.get(n) || 0) + 1);
+    if (!nat[n] && o.nationality) nat[n] = o.nationality;
+  }
+  const added = [];
+  for (const [name, count] of counts) {
+    if (have.has(name)) continue;
+    const slug = generateSlug(name);
+    added.push({
+      id: 'auto-' + slug,
+      name,
+      nameTC: nameTC[name] || '',
+      nationality: nat[name] || 'Unknown',
+      bio: '',
+      objectCount: count,
+      slug,
+      mplusUrl: 'https://www.mplus.org.hk/en/collection/makers/' + slug + '/'
+    });
+  }
+  if (!added.length) return;
+  added.sort((a, b) => b.objectCount - a.objectCount);
+  for (const a of added) {
+    museumData.artists.push(a);
+    if (museumData.searchIndex) {
+      museumData.searchIndex.push({
+        type: 'artist', id: a.id, name: a.name,
+        nameTC: a.nameTC, nationality: a.nationality, objectCount: a.objectCount
+      });
+    }
+  }
+  console.log('Artist index topped up: +' + added.length + ' artists (' + museumData.artists.length + ' total)');
+}
+
 // Open the panel for a credited contributor (indexed artist, or synthesized from works)
 function openContributor(name) {
   if (!name || !museumData) return;
@@ -1653,6 +1730,9 @@ async function init() {
 
     // Load credits + small data patches before building the graph
     await loadCreditsAndPatches();
+
+    // Top up the artist index with all artists who have works
+    topUpArtistIndex();
 
     // Hide loading, show graph
     document.getElementById('loading').style.display = 'none';
