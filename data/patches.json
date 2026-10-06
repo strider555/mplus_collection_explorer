@@ -1,0 +1,84 @@
+{
+ "version": 1,
+ "note": "Small data corrections applied at load time (avoids regenerating multi-MB datasets)",
+ "objects": [
+  {
+   "id": "20006",
+   "title": "Rare Performance Documents 1961–1994 Volume 1: Paik-Moorman Collaborations",
+   "titleTC": "罕見展演紀錄 1961–1994　第一卷：摩曼與白南準",
+   "year": 1965,
+   "date": "1965–1973, compiled 2000",
+   "area": "Moving Image",
+   "areas": [
+    "Moving Image"
+   ],
+   "category": "Video",
+   "categories": [
+    "Video"
+   ],
+   "medium": "single-channel digital video (black and white, colour, sound)",
+   "artistName": "Charlotte Moorman",
+   "nationality": "American",
+   "decade": "1960s",
+   "sigg": false,
+   "credits": [
+    [
+     "Charlotte Moorman",
+     "夏洛特．摩曼",
+     "Artist",
+     "藝術家"
+    ],
+    [
+     "Nam June Paik",
+     "白南準",
+     "Artist",
+     "藝術家"
+    ]
+   ]
+  }
+ ],
+ "tagCounts": {
+  "Moving Image": 1,
+  "Video": 1,
+  "single-channel digital video (black and white": 1,
+  "American": 1,
+  "1960s": 1
+ },
+ "linkWeights": [
+  [
+   [
+    "Moving Image",
+    "Video"
+   ],
+   1
+  ],
+  [
+   [
+    "Moving Image",
+    "single-channel digital video (black and white"
+   ],
+   1
+  ],
+  [
+   [
+    "Video",
+    "single-channel digital video (black and white"
+   ],
+   1
+  ]
+ ],
+ "stats": {
+  "totalObjects": 1
+ },
+ "searchIndex": [
+  {
+   "type": "artwork",
+   "id": "20006",
+   "title": "Rare Performance Documents 1961–1994 Volume 1: Paik-Moorman Collaborations",
+   "titleTC": "罕見展演紀錄 1961–1994　第一卷：摩曼與白南準",
+   "artistName": "Charlotte Moorman",
+   "date": "1965–1973, compiled 2000",
+   "medium": "single-channel digital video (black and whi"
+  }
+ ]
+}
