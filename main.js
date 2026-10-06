@@ -163,23 +163,11 @@ function customizeGraph(radiusScale) {
     });
 }
 
-// Find matching Research Guide for a name (artist or tag)
+// Find matching Research Guide for a name (artist or tag) — exact wording only
 function findResearchGuide(name) {
   if (!libguidesData || !name) return null;
   const lower = name.toLowerCase().trim();
-  return libguidesData.find(g => {
-    const gn = g.name.toLowerCase().trim();
-    // Exact match
-    if (gn === lower) return true;
-    // Partial: guide name contains search or vice versa
-    if (gn.includes(lower) || lower.includes(gn)) return true;
-    // Handle parenthetical names like "Anothermountainman (Stanley Wong Ping Pui)"
-    const paren = gn.match(/^(.+?)\s*\((.+?)\)$/);
-    if (paren) {
-      if (paren[1].trim() === lower || paren[2].trim() === lower) return true;
-    }
-    return false;
-  });
+  return libguidesData.find(g => g.name.toLowerCase().trim() === lower) || null;
 }
 
 function updateResearchGuideBtn(name) {
@@ -732,11 +720,18 @@ function setupLegendSubmenus() {
     });
   });
 
-  // Populate Research Guide submenu (all guides, A-Z)
+  // Populate Research Guide submenu: only guides with a matching tag/artist in the collection
   const rgContainer = document.getElementById('sub-research-guide');
   if (rgContainer && libguidesData) {
+    const currentData = getCurrentData();
+    const tagNames = new Set(currentData.tags.map(t => t.id.toLowerCase().trim()));
+    const artistNames = new Set((currentData.artists || []).map(a => a.name.toLowerCase().trim()));
     rgContainer.innerHTML = '';
-    [...libguidesData]
+    libguidesData
+      .filter(g => {
+        const n = g.name.toLowerCase().trim();
+        return tagNames.has(n) || artistNames.has(n);
+      })
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach(guide => {
         const item = document.createElement('div');
