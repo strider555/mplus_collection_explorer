@@ -436,18 +436,34 @@ function closeSidePanel() {
   document.getElementById('sidePanel').classList.remove('open');
 }
 
-// Find all objects by artist name
+// Find all objects by person name — primary artist credit or any credited contributor
 function findObjectsByArtist(artistName) {
   const currentData = getCurrentData();
   const results = [];
   const seen = new Set();
+  const key = String(artistName).toLowerCase().trim();
 
   for (const [tag, objects] of Object.entries(currentData.objectsByTag)) {
     for (const obj of objects) {
-      if (obj.artistName === artistName && !seen.has(obj.id)) {
-        seen.add(obj.id);
+      if (obj.artistName === artistName && !seen.has(String(obj.id))) {
+        seen.add(String(obj.id));
         results.push(obj);
       }
+    }
+  }
+
+  // Also include objects where this person is a credited contributor (not the primary artist)
+  for (const [oid, creds] of Object.entries(creditsData)) {
+    if (seen.has(String(oid))) continue;
+    if ((creds || []).some(([nm]) => (nm || '').toLowerCase().trim() === key)) {
+      seen.add(String(oid));
+      let found = null;
+      for (const objects of Object.values(currentData.objectsByTag)) {
+        found = objects.find(o => String(o.id) === String(oid));
+        if (found) break;
+      }
+      if (!found && fullObjects) found = fullObjects.find(o => String(o.id) === String(oid));
+      if (found) results.push(found);
     }
   }
 
@@ -460,20 +476,41 @@ function showArtistPanel(artistId) {
   let artist = museumData.artists.find(a => a.id === artistId);
 
   if (!artist) {
-    // Fallback: artist has works but is missing from the artist index — synthesize from objects
+    // Fallback: person not in the artist index — synthesize a contributor panel from works.
+    // Matches primary artistName AND any credited contributor (creditsData), so secondary
+    // credits (e.g. Wang S. C.) open a proper panel instead of failing silently.
     const key = String(artistId).toLowerCase().trim();
-    const objs = (fullObjects || []).filter(o => {
+    const seenIds = new Set();
+    const objs = [];
+    const pushObj = (o) => {
+      const oid = String(o.id);
+      if (!seenIds.has(oid)) { seenIds.add(oid); objs.push(o); }
+    };
+    for (const o of (fullObjects || [])) {
       const n = (o.artistName || '').toLowerCase().trim();
-      return n === key || n === key + 's' || key === n + 's';
-    });
+      if (n === key || n === key + 's' || key === n + 's') pushObj(o);
+    }
+    let creditNameTC = '';
+    for (const [oid, creds] of Object.entries(creditsData)) {
+      const hit = (creds || []).find(([nm]) => (nm || '').toLowerCase().trim() === key);
+      if (hit) {
+        if (hit[1] && !creditNameTC) creditNameTC = hit[1];
+        const o = (fullObjects || []).find(x => String(x.id) === String(oid));
+        if (o) pushObj(o);
+      }
+    }
     if (!objs.length) {
       console.warn('Artist not found:', artistId);
       return;
     }
+    const primary = objs.find(o => {
+      const n = (o.artistName || '').toLowerCase().trim();
+      return n === key || n === key + 's' || key === n + 's';
+    });
     artist = {
       id: artistId,
-      name: objs[0].artistName.trim(),
-      nameTC: '',
+      name: primary ? primary.artistName.trim() : String(artistId).trim(),
+      nameTC: (primary && primary.artistNameTC) ? primary.artistNameTC : creditNameTC,
       nationality: (objs.find(o => o.nationality) || {}).nationality || 'Unknown',
       objectCount: objs.length,
       slug: null,
@@ -870,7 +907,7 @@ function setupLegendSubmenus() {
       .forEach(guide => {
         const item = document.createElement('div');
         item.className = 'legend-sub-item';
-        item.innerHTML = `<span>${guide.name}</span><span class="sub-count">${guide.type}</span>`;
+        item.innerHTML = `<span>${guide.name}</span>`;
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           openGuideEntry(guide);
