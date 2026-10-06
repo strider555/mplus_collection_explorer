@@ -747,7 +747,7 @@ function setupLegendSubmenus() {
       .forEach(guide => {
         const item = document.createElement('div');
         item.className = 'legend-sub-item';
-        item.innerHTML = `<span>${guide.name}</span><span class="sub-count">${guide.type}</span>`;
+        item.innerHTML = `<span>${guide.name}</span>`;
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           openGuideEntry(guide);
