@@ -125,8 +125,8 @@
     "type": "artist"
   },
   {
-    "name": "King of Kowloon",
-    "url": "https://mplus.libguides.com/king-of-kowloon",
+    "name": "Tsang Tsou-choi (a.k.a. King of Kowloon)",
+    "url": "https://mplus.libguides.com/c.php?g=987031",
     "type": "artist"
   },
   {
@@ -136,7 +136,7 @@
   },
   {
     "name": "Kowloon Walled City",
-    "url": "https://mplus.libguides.com/kowloon-walled-city",
+    "url": "https://mplus.libguides.com/c.php?g=987336",
     "type": "concept"
   },
   {
@@ -423,5 +423,65 @@
     "name": "Zao Wou-Ki",
     "url": "https://mplus.libguides.com/c.php?g=981349",
     "type": "artist"
+  },
+  {
+    "name": "Artists' Books",
+    "url": "https://mplus.libguides.com/c.php?g=985503",
+    "type": "concept"
+  },
+  {
+    "name": "Bamboo",
+    "url": "https://mplus.libguides.com/c.php?g=985769",
+    "type": "concept"
+  },
+  {
+    "name": "Bamboo Scaffolding",
+    "url": "https://mplus.libguides.com/c.php?g=986033",
+    "type": "concept"
+  },
+  {
+    "name": "Chairs",
+    "url": "https://mplus.libguides.com/c.php?g=986088",
+    "type": "concept"
+  },
+  {
+    "name": "Craft Object",
+    "url": "https://mplus.libguides.com/c.php?g=983845",
+    "type": "concept"
+  },
+  {
+    "name": "Gutai Art",
+    "url": "https://mplus.libguides.com/c.php?g=984701",
+    "type": "concept"
+  },
+  {
+    "name": "Hong Kong Public Housing",
+    "url": "https://mplus.libguides.com/c.php?g=987036",
+    "type": "concept"
+  },
+  {
+    "name": "Michael Wolf",
+    "url": "https://mplus.libguides.com/c.php?g=987051",
+    "type": "artist"
+  },
+  {
+    "name": "Modern and Contemporary Calligraphy",
+    "url": "https://mplus.libguides.com/c.php?g=986963",
+    "type": "concept"
+  },
+  {
+    "name": "Product Design",
+    "url": "https://mplus.libguides.com/c.php?g=987034",
+    "type": "concept"
+  },
+  {
+    "name": "Textile",
+    "url": "https://mplus.libguides.com/c.php?g=987259",
+    "type": "concept"
+  },
+  {
+    "name": "Typography",
+    "url": "https://mplus.libguides.com/c.php?g=987035",
+    "type": "concept"
   }
 ]
