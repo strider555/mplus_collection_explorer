@@ -163,11 +163,17 @@ function customizeGraph(radiusScale) {
     });
 }
 
-// Find matching Research Guide for a name (artist or tag) — exact wording only
+// Find matching Research Guide for a name (artist or tag) — exact wording only,
+// plus a singular/plural bridge (e.g. tag "Sculpture" matches guide "Sculptures")
 function findResearchGuide(name) {
   if (!libguidesData || !name) return null;
   const lower = name.toLowerCase().trim();
-  return libguidesData.find(g => g.name.toLowerCase().trim() === lower) || null;
+  return libguidesData.find(g => {
+    const gn = g.name.toLowerCase().trim();
+    if (gn === lower) return true;
+    if (gn === lower + 's' || lower === gn + 's') return true;
+    return false;
+  }) || null;
 }
 
 function updateResearchGuideBtn(name) {
@@ -724,14 +730,19 @@ function setupLegendSubmenus() {
   const rgContainer = document.getElementById('sub-research-guide');
   if (rgContainer && libguidesData) {
     const currentData = getCurrentData();
-    const tagNames = new Set(currentData.tags.map(t => t.id.toLowerCase().trim()));
-    const artistNames = new Set((currentData.artists || []).map(a => a.name.toLowerCase().trim()));
+    // Guide names matched by any tag/artist (same matching as the panel button)
+    const matchedGuideNames = new Set();
+    currentData.tags.forEach(t => {
+      const g = findResearchGuide(t.id);
+      if (g) matchedGuideNames.add(g.name);
+    });
+    (currentData.artists || []).forEach(a => {
+      const g = findResearchGuide(a.name);
+      if (g) matchedGuideNames.add(g.name);
+    });
     rgContainer.innerHTML = '';
     libguidesData
-      .filter(g => {
-        const n = g.name.toLowerCase().trim();
-        return tagNames.has(n) || artistNames.has(n);
-      })
+      .filter(g => matchedGuideNames.has(g.name))
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach(guide => {
         const item = document.createElement('div');
