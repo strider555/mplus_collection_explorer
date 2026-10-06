@@ -520,11 +520,34 @@ function findObjectsByArtist(artistName) {
   const seen = new Set();
   const key = String(artistName).toLowerCase().trim();
 
+  // Map a fullObjects (pulse.json) entry to the compact card shape used by panels
+  const toCard = (o) => ({
+    id: o.id,
+    title: o.title, titleTC: o.titleTC || '',
+    date: o.date || (o.year ? String(o.year) : ''),
+    medium: o.medium || '', mediumTC: o.mediumTC || '',
+    artistName: (o.artistName || '').trim(), artistNameTC: o.artistNameTC || '',
+    nationality: o.nationality || ''
+  });
+
   for (const [tag, objects] of Object.entries(currentData.objectsByTag)) {
     for (const obj of objects) {
       if (obj.artistName === artistName && !seen.has(String(obj.id))) {
         seen.add(String(obj.id));
         results.push(obj);
+      }
+    }
+  }
+
+  // objectsByTag caps at 50 objects per tag, so works beyond the cap would be
+  // missing from panels — scan the full object list for primary-artist matches
+  if (fullObjects) {
+    for (const o of fullObjects) {
+      if (seen.has(String(o.id))) continue;
+      const n = (o.artistName || '').trim();
+      if (n === artistName || n.toLowerCase() === key) {
+        seen.add(String(o.id));
+        results.push(toCard(o));
       }
     }
   }
@@ -539,8 +562,12 @@ function findObjectsByArtist(artistName) {
         found = objects.find(o => String(o.id) === String(oid));
         if (found) break;
       }
-      if (!found && fullObjects) found = fullObjects.find(o => String(o.id) === String(oid));
-      if (found) results.push(found);
+      if (found) {
+        results.push(found);
+      } else if (fullObjects) {
+        const o = fullObjects.find(x => String(x.id) === String(oid));
+        if (o) results.push(toCard(o));
+      }
     }
   }
 
