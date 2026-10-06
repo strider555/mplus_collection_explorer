@@ -13,6 +13,7 @@ function generateMplusSlug(name) {
 let museumData = null;
 let fullObjects = null; // All 13K objects from pulse.json
 let libguidesData = null; // Research Guide entries from libguides.json
+let creditsData = {}; // objectId -> [[name, nameTC, role, roleTC], ...] (sidecar)
 let currentGraph = null;
 let currentFilter = 'all';
 let currentTypeFilter = 'all';
@@ -81,6 +82,69 @@ async function loadData() {
     `;
     throw error;
   }
+}
+
+// Escape HTML for attribute/text interpolation
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Open the panel for a credited contributor (indexed artist, or synthesized from works)
+function openContributor(name) {
+  if (!name || !museumData) return;
+  if (window._setPanelNavigating) window._setPanelNavigating();
+  const artist = museumData.artists.find(a => a.name === name);
+  showArtistPanel(artist ? artist.id : name);
+}
+
+// Load credits data + small data patches, then apply patches to museumData.
+// Credits live in data/credits.json.b64: base64 of gzipped {"s": string table,
+// "c": {objectId: [[nameIdx, nameTCIdx, roleIdx, roleTCIdx]]}} — kept small so
+// small corrections stay out of the multi-MB datasets.
+async function loadCreditsAndPatches() {
+  try {
+    const resp = await fetch('./data/credits.json.b64?v=1');
+    if (resp.ok && window.DecompressionStream) {
+      const b64 = (await resp.text()).trim();
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const { s, c } = JSON.parse(await new Response(stream).text());
+      creditsData = {};
+      for (const [id, arr] of Object.entries(c)) {
+        creditsData[id] = arr.map(([ni, ti, ri, rti]) => [s[ni], s[ti], s[ri], s[rti]]);
+      }
+    }
+  } catch (e) { console.warn('credits not available'); }
+
+  try {
+    const resp = await fetch('./data/patches.json?v=1');
+    if (!resp.ok) return;
+    const p = await resp.json();
+    if (!museumData) return;
+    for (const [id, delta] of Object.entries(p.tagCounts || {})) {
+      const t = museumData.tags.find(t => t.id === id);
+      if (t) t.count += delta;
+    }
+    for (const [[a, b], delta] of p.linkWeights || []) {
+      const l = museumData.links.find(l =>
+        (l.source === a && l.target === b) || (l.source === b && l.target === a));
+      if (l) l.weight += delta;
+    }
+    if (p.stats) {
+      for (const [k, d] of Object.entries(p.stats)) {
+        if (typeof museumData.stats[k] === 'number') museumData.stats[k] += d;
+      }
+    }
+    if (p.searchIndex && museumData.searchIndex) museumData.searchIndex.push(...p.searchIndex);
+    if (p.objects && fullObjects) {
+      for (const o of p.objects) {
+        fullObjects.push(o);
+        if (o.credits) creditsData[o.id] = o.credits;
+      }
+    }
+  } catch (e) { console.warn('patches not available'); }
 }
 
 // Initialize graph
@@ -512,10 +576,27 @@ function showArtworkPanel(artworkId) {
   // Find the artwork in objectsByTag
   let artwork = null;
   for (const [tag, objects] of Object.entries(currentData.objectsByTag)) {
-    const found = objects.find(obj => obj.id === artworkId);
+    const found = objects.find(obj => String(obj.id) === String(artworkId));
     if (found) {
       artwork = found;
       break;
+    }
+  }
+
+  if (!artwork && fullObjects) {
+    // Fallback: patched-in objects live only in the full object list
+    const p = fullObjects.find(o => String(o.id) === String(artworkId));
+    if (p) {
+      artwork = {
+        id: p.id,
+        title: p.title, titleTC: p.titleTC || '',
+        areas: p.areas || (p.area ? [p.area] : []),
+        categories: p.categories || (p.category ? [p.category] : []),
+        medium: p.medium || '', mediumTC: '',
+        date: p.date || (p.year ? String(p.year) : ''),
+        artistName: p.artistName || '', artistNameTC: '',
+        nationality: p.nationality || ''
+      };
     }
   }
 
@@ -562,11 +643,24 @@ function showArtworkPanel(artworkId) {
     const artistDisplay = artwork.artistNameTC
       ? `${artwork.artistName} (${artwork.artistNameTC})`
       : artwork.artistName;
-    const matchedArtist = museumData.artists.find(a => a.name === artwork.artistName);
-    if (matchedArtist) {
-      detailsList.push(`<div class="detail-row"><span class="detail-label">Artist:</span><a class="artist-link detail-value" data-artist-id="${matchedArtist.id}">${artistDisplay}</a></div>`);
-    } else {
-      detailsList.push(`<div class="detail-row"><span class="detail-label">Artist:</span><span class="detail-value">${artistDisplay}</span></div>`);
+    detailsList.push(`<div class="detail-row"><span class="detail-label">Artist:</span><a class="contributor-link detail-value" data-name="${escapeHtml(artwork.artistName)}">${escapeHtml(artistDisplay)}</a></div>`);
+  }
+
+  // Full credits: all constituents with roles (primary artist already shown above)
+  const credits = creditsData[artwork.id] || creditsData[String(artwork.id)];
+  if (credits && credits.length > 1) {
+    const groups = [];
+    const seen = new Map();
+    credits.forEach(([name, nameTC, role]) => {
+      if (!name || name === artwork.artistName) return;
+      const key = role || 'Contributor';
+      if (!seen.has(key)) { seen.set(key, []); groups.push([key, seen.get(key)]); }
+      const disp = nameTC ? `${name} (${nameTC})` : name;
+      seen.get(key).push(`<a class="contributor-link" data-name="${escapeHtml(name)}">${escapeHtml(disp)}</a>`);
+    });
+    if (groups.length) {
+      const html = groups.map(([role, names]) => `${escapeHtml(role)}: ${names.join(', ')}`).join(' · ');
+      detailsList.push(`<div class="detail-row"><span class="detail-label">Credits:</span><span class="detail-value">${html}</span></div>`);
     }
   }
 
@@ -594,13 +688,12 @@ function showArtworkPanel(artworkId) {
   }
 
   detailsCard.innerHTML = detailsList.join('');
-  // Bind artist link clicks
-  detailsCard.querySelectorAll('.artist-link').forEach(link => {
+  // Bind contributor link clicks
+  detailsCard.querySelectorAll('.contributor-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (window._setPanelNavigating) window._setPanelNavigating();
-      showArtistPanel(link.dataset.artistId);
+      openContributor(link.dataset.name);
     });
   });
   grid.appendChild(detailsCard);
@@ -1520,6 +1613,9 @@ async function init() {
   try {
     // Load data
     await loadData();
+
+    // Load credits + small data patches before building the graph
+    await loadCreditsAndPatches();
 
     // Hide loading, show graph
     document.getElementById('loading').style.display = 'none';
