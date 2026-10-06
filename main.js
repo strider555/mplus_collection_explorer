@@ -194,6 +194,29 @@ function updateResearchGuideBtn(name) {
   }
 }
 
+// Open the tag or artist panel for a Research Guide entry
+function openGuideEntry(guide) {
+  if (!museumData || !guide) return;
+  const currentData = getCurrentData();
+  // 1) Match a tag node first (same matching as the panel button)
+  const tag = currentData.tags.find(t => {
+    const g = findResearchGuide(t.id);
+    return g && g.name === guide.name;
+  });
+  if (tag) {
+    focusNode(tag.id);
+    return;
+  }
+  // 2) Fall back to the artist panel
+  const artist = (currentData.artists || []).find(a => {
+    const g = findResearchGuide(a.name);
+    return g && g.name === guide.name;
+  });
+  if (artist) {
+    showArtistPanel(artist.id);
+  }
+}
+
 // Show side panel with objects
 function showSidePanel(tagId) {
   const panel = document.getElementById('sidePanel');
@@ -709,6 +732,24 @@ function setupLegendSubmenus() {
     });
   });
 
+  // Populate Research Guide submenu (all guides, A-Z)
+  const rgContainer = document.getElementById('sub-research-guide');
+  if (rgContainer && libguidesData) {
+    rgContainer.innerHTML = '';
+    [...libguidesData]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(guide => {
+        const item = document.createElement('div');
+        item.className = 'legend-sub-item';
+        item.innerHTML = `<span>${guide.name}</span><span class="sub-count">${guide.type}</span>`;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openGuideEntry(guide);
+        });
+        rgContainer.appendChild(item);
+      });
+  }
+
   // Handle legend group expand/collapse (only bind once)
   if (!setupLegendSubmenus._bound) {
     setupLegendSubmenus._bound = true;
@@ -1051,8 +1092,9 @@ function filterByType(type) {
 
   // Highlight nodes of selected type, dim others
   const currentData = getCurrentData();
+  // Special type: highlight tags that have a matching Research Guide
   const matchingIds = new Set(
-    currentData.tags.filter(t => t.type === type).map(t => t.id)
+    currentData.tags.filter(t => type === 'research-guide' ? findResearchGuide(t.id) : t.type === type).map(t => t.id)
   );
 
   d3.select('#graph').selectAll('g.node')
