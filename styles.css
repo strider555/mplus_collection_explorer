@@ -370,6 +370,12 @@ html, body {
   margin-bottom: 2px;
 }
 
+.legend-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 6px 8px 10px;
+}
+
 .legend-expand {
   margin-left: auto;
   font-size: 10px;
