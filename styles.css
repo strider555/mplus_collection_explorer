@@ -390,6 +390,7 @@ html, body {
 
 .legend-group.open .legend-sub {
   max-height: 500px;
+  overflow-y: auto;
 }
 
 .legend-sub-item {
