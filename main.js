@@ -310,6 +310,9 @@ function customizeGraph(radiusScale) {
 // (e.g. the guide is "I.M. Pei" but the collection uses "I. M. Pei" — same person, 貝聿銘)
 const GUIDE_NAME_ALIASES = {
   'I.M. Pei': ['I. M. Pei'],
+  'Yue Min Jun': ['Yue Minjun'],
+  'Shigeru Uchida': ['Uchida Shigeru'],
+  'David Lam Chun Fai': ['David Lam'],
 };
 
 function findResearchGuide(name) {
