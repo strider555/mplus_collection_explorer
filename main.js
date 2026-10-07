@@ -14,6 +14,7 @@ let museumData = null;
 let fullObjects = null; // All 13K objects from pulse.json
 let libguidesData = null; // Research Guide entries from libguides.json
 let creditsData = {}; // objectId -> [[name, nameTC, role, roleTC], ...] (sidecar)
+let mlscData = null; // M+ Library Special Collection artists [{name, nameTC, count}]
 let currentGraph = null;
 let currentFilter = 'all';
 let currentTypeFilter = 'all';
@@ -222,6 +223,11 @@ async function loadCreditsAndPatches() {
       }
     }
   } catch (e) { console.warn('patches not available'); }
+
+  try {
+    const resp = await fetch('./data/mlsc.json?v=1');
+    if (resp.ok) mlscData = await resp.json();
+  } catch (e) { console.warn('mlsc not available'); }
 }
 
 // Initialize graph
@@ -1033,6 +1039,23 @@ function setupLegendSubmenus() {
       });
   }
 
+  // Populate M+ Library Special Collection submenu: CL-prefixed objects grouped by artist
+  const mlscContainer = document.getElementById('sub-mlsc');
+  if (mlscContainer && mlscData) {
+    mlscContainer.innerHTML = '';
+    mlscData.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'legend-sub-item';
+      const disp = a.nameTC ? `${a.name} (${a.nameTC})` : a.name;
+      item.innerHTML = `<span>${escapeHtml(disp)}</span><span class="sub-count">${a.count}</span>`;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openContributor(a.name);
+      });
+      mlscContainer.appendChild(item);
+    });
+  }
+
   // Handle legend group expand/collapse (only bind once)
   if (!setupLegendSubmenus._bound) {
     setupLegendSubmenus._bound = true;
@@ -1354,6 +1377,9 @@ function filterByNationality(nationality) {
 // Filter graph by tag type (area/category/medium/nationality/decade)
 function filterByType(type) {
   if (!museumData) return;
+
+  // 'mlsc' is a special collection list, not a tag type — header only expands the submenu
+  if (type === 'mlsc') return;
 
   currentTypeFilter = type;
 
