@@ -306,6 +306,12 @@ function customizeGraph(radiusScale) {
 
 // Find matching Research Guide for a name (artist or tag) — exact wording only,
 // plus a singular/plural bridge (e.g. tag "Sculpture" matches guide "Sculptures")
+// Curated name variants: guide name -> spellings used in the collection.
+// (e.g. the guide is "I.M. Pei" but the collection uses "I. M. Pei" — same person, 貝聿銘)
+const GUIDE_NAME_ALIASES = {
+  'I.M. Pei': ['I. M. Pei'],
+};
+
 function findResearchGuide(name) {
   if (!libguidesData || !name) return null;
   const lower = name.toLowerCase().trim();
@@ -313,7 +319,11 @@ function findResearchGuide(name) {
     const gn = g.name.toLowerCase().trim();
     if (gn === lower) return true;
     if (gn === lower + 's' || lower === gn + 's') return true;
-    return false;
+    const aliases = GUIDE_NAME_ALIASES[g.name] || [];
+    return aliases.some(a => {
+      const an = a.toLowerCase().trim();
+      return an === lower || an === lower + 's' || lower === an + 's';
+    });
   }) || null;
 }
 
