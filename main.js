@@ -15,6 +15,8 @@ let fullObjects = null; // All 13K objects from pulse.json
 let libguidesData = null; // Research Guide entries from libguides.json
 let creditsData = {}; // objectId -> [[name, nameTC, role, roleTC], ...] (sidecar)
 let mlscData = null; // M+ Library Special Collection artists [{name, nameTC, count}]
+let archivesData = null; // M+ Collection Archives [{name, ca, count, url, objects:[ids]}]
+let objectById = new Map(); // fullObjects lookup by id
 let currentGraph = null;
 let currentFilter = 'all';
 let currentTypeFilter = 'all';
@@ -66,7 +68,11 @@ async function loadData() {
     // Load full objects for cross-filtering
     try {
       const fullResp = await fetch('./data/pulse.json');
-      if (fullResp.ok) fullObjects = await fullResp.json();
+      if (fullResp.ok) {
+        fullObjects = await fullResp.json();
+        objectById = new Map();
+        fullObjects.forEach(o => objectById.set(String(o.id), o));
+      }
     } catch(e) { console.warn('pulse.json not available'); }
     // Load Research Guide data
     try {
@@ -219,6 +225,7 @@ async function loadCreditsAndPatches() {
     if (p.objects && fullObjects) {
       for (const o of p.objects) {
         fullObjects.push(o);
+        objectById.set(String(o.id), o);
         if (o.credits) creditsData[o.id] = o.credits;
       }
     }
@@ -228,6 +235,11 @@ async function loadCreditsAndPatches() {
     const resp = await fetch('./data/mlsc.json?v=1');
     if (resp.ok) mlscData = await resp.json();
   } catch (e) { console.warn('mlsc not available'); }
+
+  try {
+    const resp = await fetch('./data/archives.json?v=1');
+    if (resp.ok) archivesData = await resp.json();
+  } catch (e) { console.warn('archives not available'); }
 }
 
 // Initialize graph
@@ -728,6 +740,91 @@ function showArtistPanel(artistId) {
   panel.classList.add('open');
 }
 
+// Show archive panel: M+ Collection Archives entry with its CA-prefixed objects
+function showArchivePanel(archiveName) {
+  const panel = document.getElementById('sidePanel');
+  const archive = archivesData ? archivesData.find(a => a.name === archiveName) : null;
+  if (!archive) return;
+
+  document.getElementById('panelColorIndicator').style.background = '#94a3b8';
+  document.getElementById('panelTitle').textContent = archive.name;
+  document.getElementById('panelTypeLabel').textContent = 'Archive';
+  document.getElementById('panelSummary').textContent = archive.objects.length.toLocaleString() + ' objects';
+
+  const detailsBtn = document.getElementById('detailsButton');
+  if (archive.url) {
+    detailsBtn.style.display = '';
+    detailsBtn.onclick = () => window.open(archive.url, '_blank');
+  } else {
+    detailsBtn.style.display = 'none';
+  }
+  updateResearchGuideBtn(archive.name);
+
+  const grid = document.getElementById('objectGrid');
+  grid.innerHTML = '';
+  const oldMore = document.getElementById('archiveMoreBtn');
+  if (oldMore) oldMore.remove();
+
+  const objects = (archive.objects || [])
+    .map(id => objectById.get(String(id)))
+    .filter(Boolean);
+
+  const BATCH = 200;
+  function appendCards(list) {
+    list.forEach(obj => {
+      const card = document.createElement('div');
+      card.className = 'object-card';
+      card.addEventListener('click', () => showArtworkPanel(obj.id));
+
+      const title = document.createElement('div');
+      title.className = 'object-title';
+      title.textContent = obj.title || 'Untitled';
+
+      const titleTC = document.createElement('div');
+      titleTC.className = 'object-title-tc';
+      titleTC.textContent = obj.titleTC || '';
+
+      const meta = document.createElement('div');
+      meta.className = 'object-meta';
+
+      if (obj.date) {
+        const dateRow = document.createElement('div');
+        dateRow.className = 'object-meta-row';
+        dateRow.innerHTML = `<span class="object-meta-label">Date:</span><span>${obj.date}</span>`;
+        meta.appendChild(dateRow);
+      }
+
+      if (obj.medium) {
+        const mediumRow = document.createElement('div');
+        mediumRow.className = 'object-meta-row';
+        mediumRow.innerHTML = `<span class="object-meta-label">Medium:</span><span>${obj.medium}</span>`;
+        meta.appendChild(mediumRow);
+      }
+
+      card.appendChild(title);
+      if (titleTC.textContent) card.appendChild(titleTC);
+      card.appendChild(meta);
+
+      grid.appendChild(card);
+    });
+  }
+
+  appendCards(objects.slice(0, BATCH));
+  if (objects.length > BATCH) {
+    const moreBtn = document.createElement('button');
+    moreBtn.id = 'archiveMoreBtn';
+    moreBtn.textContent = `Show all ${objects.length.toLocaleString()} objects`;
+    moreBtn.addEventListener('click', () => {
+      appendCards(objects.slice(BATCH));
+      moreBtn.remove();
+    });
+    panel.appendChild(moreBtn);
+  }
+
+  // Show panel
+  panel.classList.add('open');
+}
+
 // Show artwork panel
 function showArtworkPanel(artworkId) {
   const panel = document.getElementById('sidePanel');
@@ -1056,6 +1153,22 @@ function setupLegendSubmenus() {
     });
   }
 
+  // Populate M+ Collection Archives submenu: CA-prefixed objects grouped by archive
+  const archivesContainer = document.getElementById('sub-archives');
+  if (archivesContainer && archivesData) {
+    archivesContainer.innerHTML = '';
+    archivesData.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'legend-sub-item';
+      item.innerHTML = `<span>${escapeHtml(a.name)}</span><span class="sub-count">${a.objects.length.toLocaleString()}</span>`;
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showArchivePanel(a.name);
+      });
+      archivesContainer.appendChild(item);
+    });
+  }
+
   // Handle legend group expand/collapse (only bind once)
   if (!setupLegendSubmenus._bound) {
     setupLegendSubmenus._bound = true;
@@ -1378,8 +1491,8 @@ function filterByNationality(nationality) {
 function filterByType(type) {
   if (!museumData) return;
 
-  // 'mlsc' is a special collection list, not a tag type — header only expands the submenu
-  if (type === 'mlsc') return;
+  // 'mlsc' and 'archives' are special collection lists, not tag types — header only expands the submenu
+  if (type === 'mlsc' || type === 'archives') return;
 
   currentTypeFilter = type;
 
