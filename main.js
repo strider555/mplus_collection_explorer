@@ -237,7 +237,7 @@ async function loadCreditsAndPatches() {
   } catch (e) { console.warn('mlsc not available'); }
 
   try {
-    const resp = await fetch('./data/archives.json?v=1');
+    const resp = await fetch('./data/archives.json?v=2');
     if (resp.ok) archivesData = await resp.json();
   } catch (e) { console.warn('archives not available'); }
 }
@@ -743,83 +743,106 @@ function showArtistPanel(artistId) {
 // Show archive panel: M+ Collection Archives entry with its CA-prefixed objects
 function showArchivePanel(archiveName) {
   const panel = document.getElementById('sidePanel');
-  const archive = archivesData ? archivesData.find(a => a.name === archiveName) : null;
+  let archive = null;
+  try {
+    archive = archivesData ? archivesData.find(a => a.name === archiveName) : null;
+  } catch (e) { console.error('[archives] lookup failed', e); }
   if (!archive) return;
 
-  document.getElementById('panelColorIndicator').style.background = '#94a3b8';
-  document.getElementById('panelTitle').textContent = archive.name;
-  document.getElementById('panelTypeLabel').textContent = 'Archive';
-  document.getElementById('panelSummary').textContent = archive.objects.length.toLocaleString() + ' objects';
+  try {
+    document.getElementById('panelColorIndicator').style.background = '#94a3b8';
+    document.getElementById('panelTitle').textContent = archive.name;
+    document.getElementById('panelTypeLabel').textContent = 'Archive';
+    const ids = archive.objects || [];
+    document.getElementById('panelSummary').textContent = ids.length.toLocaleString() + ' objects';
 
-  const detailsBtn = document.getElementById('detailsButton');
-  if (archive.url) {
-    detailsBtn.style.display = '';
-    detailsBtn.onclick = () => window.open(archive.url, '_blank');
-  } else {
-    detailsBtn.style.display = 'none';
-  }
-  updateResearchGuideBtn(archive.name);
+    const detailsBtn = document.getElementById('detailsButton');
+    if (archive.url) {
+      detailsBtn.style.display = '';
+      detailsBtn.onclick = () => window.open(archive.url, '_blank');
+    } else {
+      detailsBtn.style.display = 'none';
+    }
 
-  const grid = document.getElementById('objectGrid');
-  grid.innerHTML = '';
-  const oldMore = document.getElementById('archiveMoreBtn');
-  if (oldMore) oldMore.remove();
+    const grid = document.getElementById('objectGrid');
+    grid.innerHTML = '';
+    const oldMore = document.getElementById('archiveMoreBtn');
+    if (oldMore) oldMore.remove();
 
-  const objects = (archive.objects || [])
-    .map(id => objectById.get(String(id)))
-    .filter(Boolean);
-
-  const BATCH = 200;
-  function appendCards(list) {
-    list.forEach(obj => {
-      const card = document.createElement('div');
-      card.className = 'object-card';
-      card.addEventListener('click', () => showArtworkPanel(obj.id));
-
-      const title = document.createElement('div');
-      title.className = 'object-title';
-      title.textContent = obj.title || 'Untitled';
-
-      const titleTC = document.createElement('div');
-      titleTC.className = 'object-title-tc';
-      titleTC.textContent = obj.titleTC || '';
-
-      const meta = document.createElement('div');
-      meta.className = 'object-meta';
-
-      if (obj.date) {
-        const dateRow = document.createElement('div');
-        dateRow.className = 'object-meta-row';
-        dateRow.innerHTML = `<span class="object-meta-label">Date:</span><span>${obj.date}</span>`;
-        meta.appendChild(dateRow);
+    // Resolve objects: primary index, with fullObjects scan as fallback
+    const objects = [];
+    const seen = new Set();
+    const idx = (typeof objectById !== 'undefined' && objectById) ? objectById : null;
+    for (const id of ids) {
+      const key = String(id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const o = idx ? idx.get(key) : null;
+      if (o) objects.push(o);
+    }
+    if (!objects.length && typeof fullObjects !== 'undefined' && fullObjects) {
+      const idSet = new Set(ids.map(String));
+      for (const o of fullObjects) {
+        if (o && idSet.has(String(o.id))) objects.push(o);
       }
+    }
 
-      if (obj.medium) {
-        const mediumRow = document.createElement('div');
-        mediumRow.className = 'object-meta-row';
-        mediumRow.innerHTML = `<span class="object-meta-label">Medium:</span><span>${obj.medium}</span>`;
-        meta.appendChild(mediumRow);
-      }
+    const BATCH = 200;
+    function appendCards(list) {
+      list.forEach(obj => {
+        const card = document.createElement('div');
+        card.className = 'object-card';
+        card.addEventListener('click', () => showArtworkPanel(obj.id));
 
-      card.appendChild(title);
-      if (titleTC.textContent) card.appendChild(titleTC);
-      card.appendChild(meta);
+        const title = document.createElement('div');
+        title.className = 'object-title';
+        title.textContent = obj.title || 'Untitled';
 
-      grid.appendChild(card);
-    });
+        const titleTC = document.createElement('div');
+        titleTC.className = 'object-title-tc';
+        titleTC.textContent = obj.titleTC || '';
+
+        const meta = document.createElement('div');
+        meta.className = 'object-meta';
+
+        if (obj.date) {
+          const dateRow = document.createElement('div');
+          dateRow.className = 'object-meta-row';
+          dateRow.innerHTML = `<span class="object-meta-label">Date:</span><span>${escapeHtml(String(obj.date))}</span>`;
+          meta.appendChild(dateRow);
+        }
+
+        if (obj.medium) {
+          const mediumRow = document.createElement('div');
+          mediumRow.className = 'object-meta-row';
+          mediumRow.innerHTML = `<span class="object-meta-label">Medium:</span><span>${escapeHtml(String(obj.medium))}</span>`;
+          meta.appendChild(mediumRow);
+        }
+
+        card.appendChild(title);
+        if (titleTC.textContent) card.appendChild(titleTC);
+        card.appendChild(meta);
+
+        grid.appendChild(card);
+      });
+    }
+
+    appendCards(objects.slice(0, BATCH));
+    if (objects.length > BATCH) {
+      const moreBtn = document.createElement('button');
+      moreBtn.id = 'archiveMoreBtn';
+      moreBtn.textContent = `Show all ${objects.length.toLocaleString()} objects`;
+      moreBtn.addEventListener('click', () => {
+        appendCards(objects.slice(BATCH));
+        moreBtn.remove();
+      });
+      panel.appendChild(moreBtn);
+    }
+  } catch (e) {
+    console.error('[archives] panel render failed', e);
   }
 
-  appendCards(objects.slice(0, BATCH));
-  if (objects.length > BATCH) {
-    const moreBtn = document.createElement('button');
-    moreBtn.id = 'archiveMoreBtn';
-    moreBtn.textContent = `Show all ${objects.length.toLocaleString()} objects`;
-    moreBtn.addEventListener('click', () => {
-      appendCards(objects.slice(BATCH));
-      moreBtn.remove();
-    });
-    panel.appendChild(moreBtn);
-  }
+  try { updateResearchGuideBtn(archive.name); } catch (e) { console.error('[archives] RG btn failed', e); }
 
   // Show panel
   panel.classList.add('open');
