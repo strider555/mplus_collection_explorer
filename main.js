@@ -756,7 +756,7 @@ function showArchivePanel(archiveName) {
     const ids = archive.objects || [];
     document.getElementById('panelSummary').textContent = ids.length.toLocaleString() + ' objects';
 
-    const detailsBtn = document.getElementById('detailsButton');
+    const detailsBtn = document.getElementById('viewDetailsBtn');
     if (archive.url) {
       detailsBtn.style.display = '';
       detailsBtn.onclick = () => window.open(archive.url, '_blank');
