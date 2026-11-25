@@ -129,7 +129,7 @@
       <button class="pill active" data-color="area">Area</button>
       <button class="pill" data-color="category">Category</button>
       <button class="pill" data-color="decade">Decade</button>
-      <button class="pill" data-color="nationality">Country</button>
+      <button class="pill" data-color="country">Country</button>
     </div>
     <a href="./index.html" class="back-link">← Graph</a>
     <a href="./pulse.html" class="back-link">◉ Pulse</a>
@@ -179,7 +179,7 @@ const DECADE_COLORS = {
   '2020s': [34, 211, 238],
 };
 
-const NATIONALITY_COLORS = {
+const COUNTRY_COLORS = {
   'Chinese': [255, 107, 107], 'Japanese': [244, 114, 182], 'American': [96, 165, 250],
   'British': [110, 231, 183], 'Korean': [192, 132, 252], 'French': [251, 191, 36],
   'German': [52, 211, 153], 'Austrian': [245, 158, 11], 'Australian': [34, 211, 238],
@@ -215,7 +215,7 @@ function getColor(d) {
   if (colorMode === 'area') col = AREA_COLORS[d.area];
   else if (colorMode === 'category') col = CATEGORY_COLORS[d.category];
   else if (colorMode === 'decade') col = DECADE_COLORS[d.decade];
-  else if (colorMode === 'nationality') col = NATIONALITY_COLORS[d.nationality];
+  else if (colorMode === 'country') col = COUNTRY_COLORS[d.country];
   return col || [100, 100, 100];
 }
 
@@ -224,12 +224,12 @@ function getLegendItems() {
   if (colorMode === 'area') map = AREA_COLORS;
   else if (colorMode === 'category') map = CATEGORY_COLORS;
   else if (colorMode === 'decade') map = DECADE_COLORS;
-  else map = NATIONALITY_COLORS;
+  else map = COUNTRY_COLORS;
 
   // Sort by count
   const counts = {};
   data.forEach(d => {
-    const key = colorMode === 'area' ? d.area : colorMode === 'category' ? d.category : colorMode === 'decade' ? d.decade : d.nationality;
+    const key = colorMode === 'area' ? d.area : colorMode === 'category' ? d.category : colorMode === 'decade' ? d.decade : d.country;
     if (key) counts[key] = (counts[key] || 0) + 1;
   });
 
@@ -255,7 +255,7 @@ function setup() {
   textFont('Inter');
 
   // Load data
-  fetch('./data/pulse.json')
+  fetch('./data/pulse.json?v=2')
     .then(r => r.json())
     .then(d => {
       data = d;
@@ -356,7 +356,7 @@ function draw() {
         ${d.artistName ? `🎨 ${d.artistName}<br>` : ''}
         ${d.year ? `📅 ${d.year}` : ''}${d.decade ? ` (${d.decade})` : ''}<br>
         ◉ ${d.area || '—'} · ${d.category || '—'}<br>
-        ${d.nationality ? `🌍 ${d.nationality}<br>` : ''}
+        ${d.country ? `🌍 ${d.country}<br>` : ''}
         ${d.medium ? `🖼️ ${d.medium.slice(0, 60)}${d.medium.length > 60 ? '…' : ''}` : ''}
       </div>`;
   } else {

@@ -28,7 +28,7 @@ const tagColors = {
   area: '#E6A817',       // Gold
   category: '#4ecdc4',   // Teal
   medium: '#ff6b6b',     // Coral
-  nationality: '#45b7d1', // Blue
+  country: '#45b7d1', // Blue
   decade: '#96ceb4',     // Green
   collection: '#c084fc', // Purple
   movement: '#f59e0b',   // Amber
@@ -61,13 +61,13 @@ function getCurrentData() {
 // Load museum data
 async function loadData() {
   try {
-    const response = await fetch('./data/museum-index.json?v=2');
+    const response = await fetch('./data/museum-index.json?v=3');
     if (!response.ok) throw new Error('Failed to load data');
     museumData = await response.json();
     console.log('Museum data loaded:', museumData.stats);
     // Load full objects for cross-filtering
     try {
-      const fullResp = await fetch('./data/pulse.json');
+      const fullResp = await fetch('./data/pulse.json?v=2');
       if (fullResp.ok) {
         fullObjects = await fullResp.json();
         objectById = new Map();
@@ -144,7 +144,7 @@ function topUpArtistIndex() {
     const n = (o.artistName || '').trim();
     if (!n) continue;
     counts.set(n, (counts.get(n) || 0) + 1);
-    if (!nat[n] && o.nationality) nat[n] = o.nationality;
+    if (!nat[n] && o.country) nat[n] = o.country;
   }
   const added = [];
   for (const [name, count] of counts) {
@@ -154,7 +154,7 @@ function topUpArtistIndex() {
       id: 'auto-' + slug,
       name,
       nameTC: nameTC[name] || '',
-      nationality: nat[name] || 'Unknown',
+      country: nat[name] || 'Unknown',
       bio: '',
       objectCount: count,
       slug,
@@ -168,7 +168,7 @@ function topUpArtistIndex() {
     if (museumData.searchIndex) {
       museumData.searchIndex.push({
         type: 'artist', id: a.id, name: a.name,
-        nameTC: a.nameTC, nationality: a.nationality, objectCount: a.objectCount
+        nameTC: a.nameTC, country: a.country, objectCount: a.objectCount
       });
     }
   }
@@ -405,7 +405,7 @@ function showSidePanel(tagId) {
     objects = source.filter(o => 
       o.area === tagId || o.category === tagId ||
       o.medium === tagId || o.decade === tagId ||
-      o.nationality === tagId ||
+      o.country === tagId ||
       (o.areas && o.areas.includes(tagId)) ||
       (o.categories && o.categories.includes(tagId)) ||
       (o.movements && o.movements.includes(tagId)) ||
@@ -558,7 +558,7 @@ function findObjectsByArtist(artistName) {
     date: o.date || (o.year ? String(o.year) : ''),
     medium: o.medium || '', mediumTC: o.mediumTC || '',
     artistName: (o.artistName || '').trim(), artistNameTC: o.artistNameTC || '',
-    nationality: o.nationality || ''
+    country: o.country || ''
   });
 
   for (const [tag, objects] of Object.entries(currentData.objectsByTag)) {
@@ -646,7 +646,7 @@ function showArtistPanel(artistId) {
       id: artistId,
       name: primary ? primary.artistName.trim() : String(artistId).trim(),
       nameTC: (primary && primary.artistNameTC) ? primary.artistNameTC : creditNameTC,
-      nationality: (objs.find(o => o.nationality) || {}).nationality || 'Unknown',
+      country: (objs.find(o => o.country) || {}).country || 'Unknown',
       objectCount: objs.length,
       slug: null,
       mplusUrl: null,
@@ -665,7 +665,7 @@ function showArtistPanel(artistId) {
   document.getElementById('panelTypeLabel').textContent = 'Artist';
 
   // Update summary
-  const summaryText = `Artist · ${artist.nationality || 'Unknown'} · ${artist.objectCount.toLocaleString()} objects`;
+  const summaryText = `Artist · ${artist.country || 'Unknown'} · ${artist.objectCount.toLocaleString()} objects`;
   document.getElementById('panelSummary').textContent = summaryText;
 
   // Set details button URL (prefer mplusUrl from Excel, fallback to slug)
@@ -875,7 +875,7 @@ function showArtworkPanel(artworkId) {
         medium: p.medium || '', mediumTC: '',
         date: p.date || (p.year ? String(p.year) : ''),
         artistName: p.artistName || '', artistNameTC: '',
-        nationality: p.nationality || ''
+        country: p.country || ''
       };
     }
   }
@@ -944,8 +944,8 @@ function showArtworkPanel(artworkId) {
     }
   }
 
-  if (artwork.nationality) {
-    detailsList.push(`<div class="detail-row"><span class="detail-label">Country:</span><span class="detail-value">${artwork.nationality}</span></div>`);
+  if (artwork.country) {
+    detailsList.push(`<div class="detail-row"><span class="detail-label">Country:</span><span class="detail-value">${artwork.country}</span></div>`);
   }
 
   if (artwork.date) {
@@ -1099,7 +1099,7 @@ function setupLegendSubmenus() {
   if (!museumData) return;
 
   const currentData = getCurrentData();
-  const types = ['area', 'category', 'medium', 'nationality', 'decade', 'movement', 'group'];
+  const types = ['area', 'category', 'medium', 'country', 'decade', 'movement', 'group'];
 
   types.forEach(type => {
     const subContainer = document.getElementById(`sub-${type}`);
@@ -1350,7 +1350,7 @@ function showMultiSelectPanel() {
       return tags.every(tag => {
         return o.area === tag || o.category === tag ||
                o.medium === tag || o.decade === tag ||
-               o.nationality === tag ||
+               o.country === tag ||
                (o.areas && o.areas.includes(tag)) ||
                (o.categories && o.categories.includes(tag));
       });
@@ -1418,8 +1418,8 @@ function showMultiSelectPanel() {
   panel.classList.add('open');
 }
 
-// Filter graph by nationality (e.g., "Hong Kong")
-function filterByNationality(nationality) {
+// Filter graph by country (e.g., "Hong Kong")
+function filterByCountry(country) {
   if (!museumData) return;
 
   currentFilter = 'all'; // Reset area filter
@@ -1442,30 +1442,30 @@ function filterByNationality(nationality) {
 
   const currentData = getCurrentData();
 
-  // Find all tags that co-occur with objects having this nationality
+  // Find all tags that co-occur with objects having this country
   let filteredTags;
 
   if (fullObjects) {
     // Use full dataset for accurate filtering
     let source = siggMode ? fullObjects.filter(o => o.sigg) : fullObjects;
-    const hkObjects = source.filter(o => o.nationality === nationality);
-    const relevantTagIds = new Set([nationality]);
+    const hkObjects = source.filter(o => o.country === country);
+    const relevantTagIds = new Set([country]);
 
     hkObjects.forEach(obj => {
       if (obj.areas) obj.areas.forEach(a => relevantTagIds.add(a));
       if (obj.categories) obj.categories.forEach(c => relevantTagIds.add(c));
       if (obj.medium) relevantTagIds.add(obj.medium);
       if (obj.decade) relevantTagIds.add(obj.decade);
-      if (obj.nationality) relevantTagIds.add(obj.nationality);
+      if (obj.country) relevantTagIds.add(obj.country);
     });
 
     filteredTags = currentData.tags.filter(tag => relevantTagIds.has(tag.id));
   } else {
     // Fallback: check objectsByTag entries
     filteredTags = currentData.tags.filter(tag => {
-      if (tag.id === nationality) return true;
+      if (tag.id === country) return true;
       const tagObjects = currentData.objectsByTag[tag.id] || [];
-      return tagObjects.some(obj => obj.nationality === nationality);
+      return tagObjects.some(obj => obj.country === country);
     });
   }
 
@@ -1510,7 +1510,7 @@ function filterByNationality(nationality) {
   customizeGraph(radiusScale);
 }
 
-// Filter graph by tag type (area/category/medium/nationality/decade)
+// Filter graph by tag type (area/category/medium/country/decade)
 function filterByType(type) {
   if (!museumData) return;
 
@@ -1648,7 +1648,7 @@ function setupSearch() {
               <div class="search-item-info">
                 <div class="search-item-name">${item.name}${item.nameTC ? ` (${item.nameTC})` : ''}</div>
                 <div class="search-item-meta">
-                  <span class="search-item-detail">${item.nationality || 'Unknown'}</span>
+                  <span class="search-item-detail">${item.country || 'Unknown'}</span>
                   <span class="search-item-count">${item.objectCount.toLocaleString()} objects</span>
                 </div>
               </div>
@@ -1960,9 +1960,9 @@ async function init() {
       });
     });
 
-    // Setup Hong Kong nationality filter
+    // Setup Hong Kong country filter
     document.getElementById('hkFilter').addEventListener('click', () => {
-      filterByNationality('Hong Kong');
+      filterByCountry('Hong Kong');
     });
 
     // Setup Sigg Collection toggle

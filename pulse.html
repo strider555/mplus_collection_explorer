@@ -732,7 +732,7 @@ function animate() {
 async function init() {
   resize();
   
-  const resp = await fetch('./data/pulse.json');
+  const resp = await fetch('./data/pulse.json?v=2');
   const data = await resp.json();
   
   particles = data.map((d, i) => new Particle(d, i));
@@ -948,10 +948,10 @@ async function init() {
       </div>`;
     }
     
-    if (d.nationality) {
+    if (d.country) {
       html += `<div class="detail-field">
         <div class="detail-label">🌍 Country</div>
-        <div class="detail-value">${d.nationality}</div>
+        <div class="detail-value">${d.country}</div>
       </div>`;
     }
     

@@ -419,10 +419,10 @@
         objects = data.siggObjectsByTag[category];
       } else if (data._fullObjects) {
         objects = data._fullObjects.filter(o => {
-          // Match against all fields: area, category, medium, nationality, decade
+          // Match against all fields: area, category, medium, country, decade
           if (o.area === category || o.category === category ||
               o.medium === category || o.decade === category ||
-              o.nationality === category || o.artistName === category) return true;
+              o.country === category || o.artistName === category) return true;
           // Also check arrays
           if (o.areas && o.areas.includes(category)) return true;
           if (o.categories && o.categories.includes(category)) return true;
@@ -436,7 +436,7 @@
           medium: o.medium,
           date: o.year ? String(o.year) : '',
           artistName: o.artistName,
-          nationality: o.nationality || ''
+          country: o.country || ''
         }));
       } else {
         objects = (isSigg && data.siggObjectsByTag ? data.siggObjectsByTag[category] : null) || data.objectsByTag[category] || [];
@@ -517,12 +517,12 @@
           meta.appendChild(row);
         }
 
-        if (obj.nationality) {
+        if (obj.country) {
           const row = document.createElement('div');
           row.className = 'object-meta-row';
           row.innerHTML = `
             <span class="object-meta-label">Country</span>
-            <span>${obj.nationality}</span>
+            <span>${obj.country}</span>
           `;
           meta.appendChild(row);
         }
@@ -611,7 +611,7 @@
           if (siggIdSets[tag]) return siggIdSets[tag].has(o.id);
           return o.area === tag || o.category === tag ||
                  o.medium === tag || o.decade === tag ||
-                 o.nationality === tag ||
+                 o.country === tag ||
                  (o.areas && o.areas.includes(tag)) ||
                  (o.categories && o.categories.includes(tag));
         });
@@ -624,7 +624,7 @@
         medium: o.medium,
         date: o.year ? String(o.year) : '',
         artistName: o.artistName,
-        nationality: o.nationality || ''
+        country: o.country || ''
       }));
 
       document.getElementById('tagTitle').textContent = tags.join(' + ');
@@ -665,7 +665,7 @@
           }
           const meta = document.createElement('div');
           meta.className = 'object-meta';
-          [['Date', obj.date], ['Artist', obj.artistName], ['Country', obj.nationality], ['Medium', obj.medium]].forEach(([label, val]) => {
+          [['Date', obj.date], ['Artist', obj.artistName], ['Country', obj.country], ['Medium', obj.medium]].forEach(([label, val]) => {
             if (val) {
               const row = document.createElement('div');
               row.className = 'object-meta-row';
