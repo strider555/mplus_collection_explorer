@@ -58,18 +58,40 @@ function getCurrentData() {
   };
 }
 
+
+// Compatibility shim: data files generated before the rename still use the
+// legacy 'nationality' naming — normalise to 'country' at load time.
+function fixCountryField(o) {
+  if (o && o.nationality !== undefined) {
+    if (o.country === undefined) o.country = o.nationality;
+    delete o.nationality;
+  }
+}
+function fixCountryData(d) {
+  if (!d) return;
+  (d.tags || []).forEach(t => { if (t.type === 'nationality') t.type = 'country'; });
+  (d.siggTags || []).forEach(t => { if (t.type === 'nationality') t.type = 'country'; });
+  (d.artists || []).forEach(fixCountryField);
+  Object.values(d.objectsByTag || {}).forEach(arr => arr.forEach(fixCountryField));
+  Object.values(d.siggObjectsByTag || {}).forEach(arr => arr.forEach(fixCountryField));
+  (d.searchIndex || []).forEach(fixCountryField);
+  (d.siggSearchIndex || []).forEach(fixCountryField);
+}
+
 // Load museum data
 async function loadData() {
   try {
     const response = await fetch('./data/museum-index.json?v=3');
     if (!response.ok) throw new Error('Failed to load data');
     museumData = await response.json();
+    fixCountryData(museumData);
     console.log('Museum data loaded:', museumData.stats);
     // Load full objects for cross-filtering
     try {
       const fullResp = await fetch('./data/pulse.json?v=2');
       if (fullResp.ok) {
         fullObjects = await fullResp.json();
+        fullObjects.forEach(fixCountryField);
         objectById = new Map();
         fullObjects.forEach(o => objectById.set(String(o.id), o));
       }

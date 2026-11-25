@@ -259,6 +259,7 @@ function setup() {
     .then(r => r.json())
     .then(d => {
       data = d;
+      data.forEach(x => { if (x.nationality !== undefined) { if (x.country === undefined) x.country = x.nationality; delete x.nationality; } });
       computeSpiral();
       updateLegend();
       document.getElementById('subtitle').textContent = `${data.length.toLocaleString()} objects in phyllotaxis arrangement`;

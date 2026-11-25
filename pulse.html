@@ -734,6 +734,7 @@ async function init() {
   
   const resp = await fetch('./data/pulse.json?v=2');
   const data = await resp.json();
+  data.forEach(d => { if (d.nationality !== undefined) { if (d.country === undefined) d.country = d.nationality; delete d.nationality; } });
   
   particles = data.map((d, i) => new Particle(d, i));
   allParticles = particles;
